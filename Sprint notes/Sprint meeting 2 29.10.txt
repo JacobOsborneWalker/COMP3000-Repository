@@ -1,0 +1,14 @@
+Attended with Hai-Van Dang
+
+
+Key points from the meeting:
+	• In order to explain my project, I need to explain how it would improve on prior projects and provide examples of prior similar projects to show how they work and how mine would improve on them. 
+	• I need to do more research into what the users should and shouldn’t be able to search so that I can implement better access control.
+	• Talked about starting the next sprint on Monday that way the rest of the week I can focus on other modules.
+	• There is a document on the DLE which is a template for the report. I need to add to the methodology section as part of that. 
+
+Focus on the next two weeks:
+	• Set up the raspberry pi with the testing environment on it. 
+	• More research into existing projects
+	• Define the access of the users and what they can or can't see.
+	
