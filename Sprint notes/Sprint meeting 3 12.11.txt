@@ -1,0 +1,12 @@
+Attended with Hai Van-Dang
+
+
+Key points from the meeting:
+	• I have completed the planning phase of my project.
+	• I need to send Hai Van-Dang the copy of my completed documentation to help her understand it
+	• The wireframe has been completed but I need to improve upon the design before sending it
+	• I have not had the opportunity to set up the raspberry pi
+
+Focus for the next two weeks:
+	• Finalise the wireframe ready for the UI development phase
+Set up the raspberry pi with Kismet
