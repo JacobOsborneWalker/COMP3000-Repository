@@ -1,8 +1,55 @@
 body {
     margin: 0;
     font-family: Arial;
-    display: flex;
     height: 100vh;
+}
+
+/* login screen */
+#loginScreen {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: #ecf0f1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#loginBox {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+#loginBox input {
+    width: 250px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* layout */
+#app {
+    display: none;
+    height: 100vh;
+}
+
+#app:not(.hidden) {
+    display: flex;
 }
 
 /* sidebar */
@@ -13,20 +60,13 @@ body {
     padding: 20px;
 }
 
-/* disabled before login */
-#sidebar.locked {
-    pointer-events: none;
-    opacity: 0.4;
-}
-
 #sidebar h2 {
-    font-size: 20px;
     margin-bottom: 20px;
 }
 
 #sidebar ul {
-    padding: 0;
     list-style: none;
+    padding: 0;
 }
 
 #sidebar ul li {
@@ -35,42 +75,27 @@ body {
 }
 
 #sidebar ul li:hover {
-    background: #3e5871;
+    background: #3f5369;
 }
 
-/* Main content */
+/* main content */
 #content {
     flex: 1;
     padding: 20px;
 }
 
-.hidden {
-    display: none;
-}
-
-.page {
-    padding: 10px;
-}
-
-input, textarea, select {
-    display: block;
-    width: 250px;
-    margin-bottom: 12px;
-    padding: 6px;
-}
-
-button {
-    padding: 8px 15px;
-    cursor: pointer;
-}
-
 table {
-    width: 70%;
     border-collapse: collapse;
-    margin-top: 20px;
+    width: 70%;
 }
 
 th, td {
     border: 1px solid #999;
     padding: 8px;
+}
+
+input, textarea, select {
+    width: 250px;
+    margin-bottom: 12px;
+    padding: 6px;
 }

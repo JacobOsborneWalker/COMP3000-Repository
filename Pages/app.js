@@ -1,46 +1,35 @@
-
-// click login
-let ClickedLogin = false;
-
+// login 
 function login() {
-   
-    // login attempted
-    ClickedLogin = true;
 
-    // unlocks sidebar
-    document.getElementById("sidebar").classList.remove("locked");
+    console.log("button working")
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
 
-    // dashboard
+    // show dashboard
     showPage("dashboard");
 }
 
+// logout 
 function logout() {
-    // reset
-    ClickedLogin = false;
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("loginScreen").classList.remove("hidden");
 
-    // lock sidebar
-    document.getElementById("sidebar").classList.add("locked");
-
-    // return
-    showPage("login");
+    document.querySelectorAll(".page").forEach(page => {
+        page.classList.remove("active");
+    });
 }
 
-// show pages
+// switch
 function showPage(pageId) {
+
+    console.log("function working")
     
-    // block navigation
-    if (!ClickedLogin && pageId !== "login") {
-        alert("Please click the Login button first.");
-        return;
-    }
-
-    const pages = document.querySelectorAll(".page");
-
-    pages.forEach(page => {
-        if (page.id === pageId) {
-            page.classList.remove("hidden");
-        } else {
-            page.classList.add("hidden");
-        }
+    // hide pages
+    document.querySelectorAll(".page").forEach(page => {
+        page.classList.remove("active");
     });
+
+    // show page
+    const page = document.getElementById(pageId);
+    page.classList.add("active");
 }
