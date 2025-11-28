@@ -44,17 +44,24 @@
                 <p>Welcome to the wireless network monitoring system.</p>
             </div>
 
-            <!-- scan start -->
+           <!-- scan start -->
             <div id="createScan" class="page">
                 <h1>Create Scan Request</h1>
-                <select>
-                    <option>WiFi Scan</option>
-                    <option>Bluetooth Scan</option>
-                    <option>Both</option>
-                </select>
-                <textarea placeholder="Additional notes"></textarea>
-                <button>Submit Scan Request</button>
+                <div class="scan-form">
+                    <label for="scanType">Select Scan Type:</label>
+                    <select id="scanType">
+                        <option>WiFi Scan</option>
+                        <option>Bluetooth Scan</option>
+                        <option>Both</option>
+                    </select>
+
+                    <label for="scanNotes">Additional Notes:</label>
+                    <textarea id="scanNotes" placeholder="Enter any additional details"></textarea>
+
+                    <button id="submitScan">Submit Scan Request</button>
+                </div>
             </div>
+
 
             <!-- approval -->
             <div id="approval" class="page">

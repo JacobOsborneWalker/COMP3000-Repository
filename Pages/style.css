@@ -1,10 +1,10 @@
+
 body {
     margin: 0;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
     height: 100vh;
 }
-
-/* login screen */
+/*login*/
 #loginScreen {
     position: fixed;
     width: 100%;
@@ -29,10 +29,10 @@ body {
     margin-bottom: 15px;
 }
 
+
 .hidden {
     display: none !important;
 }
-
 
 .page {
     display: none;
@@ -42,7 +42,7 @@ body {
     display: block;
 }
 
-/* layout */
+/* main layout */
 #app {
     display: none;
     height: 100vh;
@@ -84,18 +84,66 @@ body {
     padding: 20px;
 }
 
+/* table */
 table {
     border-collapse: collapse;
     width: 70%;
+    margin-top: 10px;
 }
 
 th, td {
     border: 1px solid #999;
     padding: 8px;
+    text-align: left;
 }
 
+/* form element */
 input, textarea, select {
     width: 250px;
     margin-bottom: 12px;
     padding: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+/* create scan */
+.scan-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+}
+
+.scan-form label {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.scan-form select,
+.scan-form textarea {
+    padding: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.scan-form textarea {
+    height: 100px; 
+
+}
+
+.scan-form button {
+    width: 150px;
+    padding: 10px;
+    cursor: pointer;
+    align-self: flex-start; 
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+.scan-form button:hover {
+    background-color: #3f5369;
 }
