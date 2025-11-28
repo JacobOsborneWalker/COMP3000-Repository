@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Network Monitoring Tool</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+<div id="app">
+
+   <!--side content-->
+    <aside id="sidebar">
+        <h2>Network Monitor</h2>
+
+        <ul>
+            <li onclick="showPage('dashboard')">Dashboard</li>
+            <li onclick="showPage('createScan')">Create Scan</li>
+            <li onclick="showPage('scanResults')">Scan Results</li>
+            <li onclick="showPage('nodeHealth')">Node Health</li>
+            <li onclick="showPage('scanApproval')">Scan Approval</li>
+            <li onclick="showPage('adminPanel')">Admin Panel</li>
+            <li onclick="showPage('login')">Logout</li>
+        </ul>
+    </aside>
+
+    <!--main content-->
+    <main id="content">
+
+        <!-- LOGIN PAGE -->
+        <section id="login" class="page">
+            <div class="card login-card">
+                <h2>Login</h2>
+                <input type="text" placeholder="Username" />
+                <input type="password" placeholder="Password" />
+                <button onclick="showPage('dashboard')">Login</button>
+            </div>
+        </section>
+
+        <!-- dashboard -->
+        <section id="dashboard" class="page hidden">
+            <h1>Dashboard</h1>
+            <div class="grid">
+                <div class="stat-card">Active Scans: 0</div>
+                <div class="stat-card">Nodes Online: 3</div>
+                <div class="stat-card">Alerts: 0</div>
+            </div>
+        </section>
+
+        <!-- start scan -->
+        <section id="createScan" class="page hidden">
+            <h1>Create Scan Request</h1>
+            <div class="card form-card">
+                <label>Site</label>
+                <select>
+                    <option>Site A</option>
+                    <option>Site B</option>
+                </select>
+
+                <label>Scan Type</label>
+                <select>
+                    <option>Wireless Survey</option>
+                    <option>Rogue Device Check</option>
+                </select>
+
+                <label>Notes</label>
+                <textarea rows="4"></textarea>
+
+                <button>Submit Request</button>
+            </div>
+        </section>
+
+        <!-- approval -->
+        <section id="scanApproval" class="page hidden">
+            <h1>Scan Approval</h1>
+            <table>
+                <tr>
+                    <th>Scan ID</th><th>User</th><th>Type</th><th>Site</th><th>Status</th>
+                </tr>
+                <tr>
+                    <td>—</td><td>—</td><td>—</td><td>—</td><td>Pending</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- results -->
+        <section id="scanResults" class="page hidden">
+            <h1>Scan Results</h1>
+
+            <div class="grid">
+                <div class="stat-card">Rogue APs: 0</div>
+                <div class="stat-card">Unknown Devices: 0</div>
+                <div class="stat-card">Signal Issues: 0</div>
+            </div>
+
+            <table>
+                <tr>
+                    <th>Device</th><th>MAC</th><th>Signal</th><th>Last Seen</th>
+                </tr>
+                <tr>
+                    <td>—</td><td>—</td><td>—</td><td>—</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- health monitor -->
+        <section id="nodeHealth" class="page hidden">
+            <h1>Node Health Monitor</h1>
+            <table>
+                <tr>
+                    <th>Node ID</th><th>Site</th><th>Status</th><th>Last Check-In</th>
+                </tr>
+                <tr>
+                    <td>1</td><td>Site A</td><td>Online</td><td>—</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- admin -->
+        <section id="adminPanel" class="page hidden">
+            <h1>Admin Panel</h1>
+            <button>Add New User</button>
+
+            <table>
+                <tr>
+                    <th>User</th><th>Role</th><th>Last Login</th>
+                </tr>
+                <tr>
+                    <td>Admin</td><td>Full Access</td><td>—</td>
+                </tr>
+            </table>
+        </section>
+
+    </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
