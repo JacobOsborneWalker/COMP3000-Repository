@@ -1,0 +1,12 @@
+Attended with Hai-Van Dang Remotely
+
+Key points from the meeting:
+Speak to Chris about implementing role based access control
+do a bit more research and writeup on pre-existing solutions
+reference the specific examples of solutions mentioned demo on Monday the 15th
+the raspberry pi was not fully set up, but I will continue over the next few weeks.
+
+Focus for next two weeks:
+Setting up the initial webpage with hardcoded data
+set up login feature for the page
+add to the documentation
