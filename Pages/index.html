@@ -5,112 +5,127 @@
     <title>Wireless Monitoring System</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-    <!-- login page -->
-    <div id="loginScreen">
-        <div id="loginBox">
-            <h1>Login</h1>
-            <input id="loginUser" type="text" placeholder="Username" />
-            <input id="loginPass" type="password" placeholder="Password" />
-            <button onclick="login()">Login</button>
+<div id="loginScreen">
+    <div id="loginBox">
+        <h1>Login</h1>
+        <input id="loginUser" type="text" placeholder="Username" />
+        <input id="loginPass" type="password" placeholder="Password" />
+        <p id="loginError" class="error hidden">Invalid login</p>
+        <button id="loginBtn">Login</button>
+    </div>
+</div>
+
+<div id="app" class="hidden">
+
+    <aside id="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li id="btnDashboard" class="menu-item" onclick="showPage('dashboard')">Dashboard</li>
+            <li id="btnCreate" class="menu-item" onclick="showPage('createScan')">Create Scan Request</li>
+            <li id="btnApproval" class="menu-item" onclick="showPage('approval')">Scan Approval Dashboard</li>
+            <li id="btnResults" class="menu-item" onclick="showPage('results')">Scan Results</li>
+            <li id="btnNodes" class="menu-item" onclick="showPage('nodes')">Node Health Monitor</li>
+            <li id="btnAdmin" class="menu-item" onclick="showPage('admin')">Admin Panel</li>
+            <li onclick="logout()">Logout</li>
+        </ul>
+    </aside>
+
+    <section id="content">
+
+        <div id="dashboard" class="page hidden">
+            <h1>Dashboard</h1>
+            <p>Welcome to the network monitoring system.</p>
         </div>
-    </div>
 
-    <!-- main application -->
-    <div id="app" class="hidden">
-
-        <!-- sidebar -->
-        <aside id="sidebar">
-            <h2>Menu</h2>
-            <ul>
-                <li onclick="showPage('dashboard')">Dashboard</li>
-                <li onclick="showPage('createScan')">Create Scan Request</li>
-                <li onclick="showPage('approval')">Scan Approval Dashboard</li>
-                <li onclick="showPage('results')">Scan Results</li>
-                <li onclick="showPage('nodes')">Node Health Monitor</li>
-                <li onclick="showPage('admin')">Admin Panel</li>
-                <li onclick="logout()">Logout</li>
-            </ul>
-        </aside>
-
-        <!-- page content -->
-        <section id="content">
-
-            <!-- dashboard -->
-            <div id="dashboard" class="page">
-                <h1>Dashboard</h1>
-                <p>Welcome to the wireless network monitoring system.</p>
-            </div>
-
-           <!-- scan start -->
-            <div id="createScan" class="page">
-                <h1>Create Scan Request</h1>
-                <div class="scan-form">
-                    <label for="scanType">Select Scan Type:</label>
-                    <select id="scanType">
-                        <option>WiFi Scan</option>
-                        <option>Bluetooth Scan</option>
-                        <option>Both</option>
-                    </select>
-
-                    <label for="scanNotes">Additional Notes:</label>
-                    <textarea id="scanNotes" placeholder="Enter any additional details"></textarea>
-
-                    <button id="submitScan">Submit Scan Request</button>
-                </div>
-            </div>
-
-
-            <!-- approval -->
-            <div id="approval" class="page">
-                <h1>Scan Approval Dashboard</h1>
-                <table>
-                    <tr><th>Request ID</th><th>Type</th><th>Status</th><th>Action</th></tr>
-                    <tr>
-                        <td>#001</td><td>WiFi Scan</td><td>Pending</td>
-                        <td><button>Approve</button></td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- results -->
-            <div id="results" class="page">
-                <h1>Scan Results</h1>
-                <table>
-                    <tr><th>SSID</th><th>Signal</th><th>Security</th></tr>
-                    <tr><td>SchoolWiFi</td><td>-55 dBm</td><td>WPA2</td></tr>
-                    <tr><td>Unauthorized_AP</td><td>-70 dBm</td><td>Open</td></tr>
-                </table>
-            </div>
-
-            <!-- node health -->
-            <div id="nodes" class="page">
-                <h1>Node Health Monitor</h1>
-                <table>
-                    <tr><th>Node ID</th><th>Status</th><th>Battery</th><th>Last Seen</th></tr>
-                    <tr><td>Pi-01</td><td>Online</td><td>87%</td><td>10 sec ago</td></tr>
-                    <tr><td>Pi-02</td><td>Offline</td><td>—</td><td>5 hours ago</td></tr>
-                </table>
-            </div>
-
-            <!-- admin -->
-            <div id="admin" class="page">
-                <h1>Admin Panel</h1>
-                <h3>Add User</h3>
-                <input type="text" placeholder="New username" />
-                <select>
-                    <option>User</option>
-                    <option>Manager</option>
-                    <option>Admin</option>
+        <div id="createScan" class="page hidden">
+            <h1>Create Scan Request</h1>
+            
+            <div class="form-group">
+                <label for="scanType">Select Scan Type:</label>
+                <select id="scanType">
+                    <option value="">Select scan type…</option>
+                    <option>WiFi Scan</option>
+                    <option>Bluetooth Scan</option>
+                    <option>Both</option>
                 </select>
-                <button>Create User</button>
             </div>
 
-        </section>
-    </div>
+            <div class="form-group">
+                <label for="scanNote">Notes / Justification:</label>
+                <textarea id="scanNote" placeholder="e.g., Target area is classroom B-12 due to recent connectivity issues." rows="5"></textarea>
+            </div>
 
-    <script src="app.js"></script>
+            <p id="scanError" class="error hidden"></p>
+            <p id="scanSuccess" class="success hidden"></p>
+            
+            <button onclick="createScan()">Submit Scan Request</button>
+        </div>
+
+        <div id="approval" class="page hidden">
+            <h1>Scan Approval Dashboard</h1>
+            <table id="approvalTable">
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </table>
+        </div>
+
+        <div id="results" class="page hidden">
+            <h1>Scan Results</h1>
+            <table id="resultsTable">
+                <tr>
+                    <th>SSID</th>
+                    <th>Signal</th>
+                    <th>Security</th>
+                </tr>
+            </table>
+        </div>
+
+        <div id="nodes" class="page hidden">
+            <h1>Node Health Monitor</h1>
+            <table id="nodeTable">
+                <tr>
+                    <th>Node ID</th>
+                    <th>Status</th>
+                    <th>Battery</th>
+                    <th>Last Seen</th>
+                </tr>
+            </table>
+        </div>
+
+        <div id="admin" class="page hidden">
+            <h1>Admin Panel</h1>
+
+            <h3>Add New User</h3>
+            <input id="newUser" type="text" placeholder="Username" />
+            <select id="newRole">
+                <option>User</option>
+                <option>Manager</option>
+                <option>Safeguarding Officer</option>
+                <option>Admin</option>
+            </select>
+            <button onclick="createUser()">Create User</button>
+            <p id="adminMessage" class="success hidden"></p>
+
+            <h3>Existing Users</h3>
+            <table id="userTable">
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </table>
+        </div>
+
+    </section>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
