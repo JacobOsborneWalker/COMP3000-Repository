@@ -1,115 +1,36 @@
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    height: 100vh;
-}
+/* general */
+body { margin:0; font-family: Arial, sans-serif; background:#ecf0f1; height:100vh; }
 
+/* --- THE FIX IS HERE --- */
+/* We add !important to ensure this class overrides the ID styles */
+.hidden { display:none !important; } 
 
-.hidden { 
-    display: none !important; 
-}
-
-.error { color: red; }
-.success { color: green; }
+.error { color: #c0392b; }
+.success { color: #27ae60; }
 
 /* login */
-#loginScreen {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background: #ecf0f1;
-    display: flex; 
-    justify-content: center;
-    align-items: center;
-}
+#loginScreen{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index: 1000; }
+#loginBox{ background:#fff; padding:30px; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,0.12); text-align:center; width:320px; }
+#loginBox input{ width:100%; padding:10px; margin:8px 0; box-sizing:border-box; }
 
-#loginBox {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 0 12px rgba(0,0,0,0.2);
-    text-align: center;
-}
+/* app layout */
+#app{ display:flex; height:100vh; }
+#sidebar{ width:240px; background:#2c3e50; color:#fff; padding:20px; box-sizing:border-box; }
+#sidebar h2{ margin-top:0; }
+#sidebar ul{ list-style:none; padding:0; margin:0; }
+#sidebar ul li{ padding:10px; cursor:pointer; border-radius:4px; }
+#sidebar ul li:hover{ background:#34495e; }
 
-#loginBox input {
-    width: 250px;
-    padding: 10px;
-    margin-bottom: 15px;
-}
+/* content */
+#content{ flex:1; padding:20px; overflow:auto; box-sizing:border-box; background:#f7f9fb; }
+.page{ display:block; min-height:calc(100vh - 40px); }
 
-/* layout */
-#app { 
-    display: flex; 
-    height: 100vh; 
-}
+/* forms / tables */
+select, input, textarea { width:320px; padding:8px; margin:6px 0; box-sizing:border-box; border-radius:4px; border:1px solid #ccc; }
+textarea{ min-height:80px; }
+button{ padding:8px 14px; background:#3498db; color:#fff; border:none; border-radius:4px; cursor:pointer; }
+button:hover{ background:#2980b9; }
 
-#sidebar {
-    width: 250px;
-    background: #2c3e50;
-    color: white;
-    padding: 20px;
-}
-
-#sidebar ul { list-style: none; padding: 0; }
-
-#sidebar ul li {
-    padding: 12px;
-    cursor: pointer;
-}
-
-#sidebar ul li:hover { background: #3f5369; }
-
-#content {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.page { display: block; min-height: calc(100vh - 40px); }
-
-/* group styling */
-.form-group {
-    margin-bottom: 20px;
-    display: flex; 
-    flex-direction: column; 
-}
-
-.form-group label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block; 
-}
-
-
-#createScan input, 
-#createScan select {
-    width: 350px;
-}
-
-
-#createScan textarea {
-    height: 100px;
-    width: 350px; 
-    margin-bottom: 12px; 
-    padding: 6px;
-}
-
-
-table {
-    border-collapse: collapse;
-    width: 70%;
-}
-
-th, td {
-    border: 1px solid #999;
-    padding: 8px;
-}
-
-input, select {
-    margin-bottom: 12px;
-    padding: 6px;
-}
-
-#admin input, #admin select {
-    width: 250px;
-}
+table{ border-collapse:collapse; width:100%; max-width:900px; margin-top:12px; }
+th, td{ border:1px solid #ccc; padding:8px; text-align:left; }
+th{ background:#34495e; color:#fff; }
