@@ -2,94 +2,140 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Wireless Monitoring System</title>
+  <title>Wireless Monitoring System — Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <div id="loginScreen">
     <div id="loginBox">
-      <h1>Login</h1>
-      <input id="loginUser" type="text" placeholder="Username" />
+      <h1>WMS Login</h1>
+
+      <input id="loginUser" type="text" placeholder="Username (admin, safeguard, auditor, ict, staff)" />
       <input id="loginPass" type="password" placeholder="Password" />
+
       <p id="loginError" class="error hidden"></p>
       <button id="loginBtn">Login</button>
+
+      <p class="hint">Test accounts: <br>
+        admin/admin123 · safeguard/safe123 · auditor/audit123 · ict/ict123 · staff/staff123
+      </p>
     </div>
   </div>
 
   <div id="app" class="hidden">
-    <aside id="sidebar">
-      <h2>Menu</h2>
-      <ul>
-        <li id="btnDashboard" class="menu-item hidden" onclick="showPage('dashboard')">Dashboard</li>
-        <li id="btnCreate" class="menu-item hidden" onclick="showPage('createScan')">Create Scan Request</li>
-        <li id="btnApproval" class="menu-item hidden" onclick="showPage('approval')">Scan Approval Dashboard</li>
-        <li id="btnResults" class="menu-item hidden" onclick="showPage('results')">Scan Results</li>
-        <li id="btnNodes" class="menu-item hidden" onclick="showPage('nodes')">Node Health Monitor</li>
-        <li id="btnAdmin" class="menu-item hidden" onclick="showPage('admin')">Admin Panel</li>
-        <li onclick="logout()">Logout</li>
-      </ul>
-    </aside>
 
-    <section id="content">
-      <div id="dashboard" class="page hidden">
-        <h1>Dashboard</h1>
-        <p>Overview and summary metrics.</p>
+    <header id="topbar">
+      <div id="brand">Wireless Monitoring System</div>
+      <div id="userArea">
+        <span id="userInfo"></span>
+        <button id="btnLogout" class="textBtn">Logout</button>
+        <button id="btnAdminQuick" class="textBtn hidden">Admin</button>
       </div>
+    </header>
 
-      <div id="createScan" class="page hidden">
-        <h1>Create Scan Request</h1>
-        <label>Scan type</label><br/>
-        <select id="scanType">
-          <option value="">-- Select --</option>
-          <option>WiFi Scan</option>
-          <option>Bluetooth Scan</option>
-          <option>Both</option>
-        </select>
-        <br/>
-        <label>Notes</label><br/>
-        <textarea id="scanNote" placeholder="Notes..."></textarea>
-        <p id="scanError" class="error hidden"></p>
-        <p id="scanSuccess" class="success hidden"></p>
-        <br/>
-        <button id="submitScanBtn">Submit Request</button>
-      </div>
+    <main id="main">
 
-      <div id="approval" class="page hidden">
-        <h1>Scan Approval Dashboard</h1>
-        <table id="approvalTable">
-          <tr><th>Request ID</th><th>Type</th><th>User</th><th>Status</th><th>Action</th></tr>
-        </table>
-      </div>
+      <section id="dashboard" class="page hidden">
+        <h2>Dashboard</h2>
+        <p class="sub">Quick actions — select a tile to continue.</p>
 
-      <div id="results" class="page hidden">
-        <h1>Scan Results</h1>
-        <table id="resultsTable">
-          <tr><th>Request ID</th><th>SSID</th><th>Signal</th><th>Security</th></tr>
-        </table>
-      </div>
+        <div id="tiles" class="tilesGrid">
+          </div>
+      </section>
 
-      <div id="nodes" class="page hidden">
-        <h1>Node Health Monitor</h1>
-        <table id="nodeTable">
-          <tr><th>Node ID</th><th>Status</th><th>Battery</th><th>Last Seen</th></tr>
-        </table>
-      </div>
+      <section id="createScan" class="page hidden contentPage">
+        <h2>Create Scan Request</h2>
+        <div class="card">
+          <label>Scan Type</label>
+          <select id="scanType">
+            <option value="">-- Select --</option>
+            <option>WiFi Scan</option>
+            <option>Bluetooth Scan</option>
+            <option>Both</option>
+          </select>
 
-      <div id="admin" class="page hidden">
-        <h1>Admin Panel</h1>
-        <h3>Create user</h3>
-        <input id="newUser" placeholder="username" />
-        <select id="newRole"><option>admin</option><option>safeguard</option><option>auditor</option><option>staff</option></select>
-        <button id="createUserBtn">Create User</button>
-        <p id="adminMessage" class="success hidden"></p>
+          <label>Notes</label>
+          <textarea id="scanNote" placeholder="Reason / location / other notes"></textarea>
 
-        <h3>Existing users</h3>
-        <table id="userTable">
-          <tr><th>Username</th><th>Role</th><th>Actions</th></tr>
-        </table>
-      </div>
-    </section>
+          <p id="scanError" class="error hidden"></p>
+          <p id="scanSuccess" class="success hidden"></p>
+
+          <div class="actions">
+            <button id="submitScanBtn">Submit Request</button>
+            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="approval" class="page hidden contentPage">
+        <h2>Scan Approval Dashboard</h2>
+        <div class="card">
+          <table id="approvalTable">
+            <thead><tr><th>Request ID</th><th>Type</th><th>User</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="actions">
+            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="results" class="page hidden contentPage">
+        <h2>Scan Results</h2>
+        <div class="card">
+          <table id="resultsTable">
+            <thead><tr><th>Request ID</th><th>SSID/Device</th><th>Signal</th><th>Security</th></tr></thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="actions">
+            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="nodes" class="page hidden contentPage">
+        <h2>Node Health Monitor</h2>
+        <div class="card">
+          <table id="nodeTable">
+            <thead><tr><th>Node ID</th><th>Status</th><th>Battery</th><th>Last Seen</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="actions">
+            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="admin" class="page hidden contentPage">
+        <h2>Admin Panel</h2>
+        <div class="card">
+          <label>New username</label>
+          <input id="newUser" placeholder="username" />
+          <label>Role</label>
+          <select id="newRole">
+            <option>admin</option><option>safeguard</option><option>auditor</option><option>staff</option>
+          </select>
+          <div class="actions">
+            <button id="createUserBtn">Create User</button>
+            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
+          </div>
+          <p id="adminMessage" class="success hidden"></p>
+
+          <h3 style="margin-top:20px">Existing users</h3>
+          <table id="userTable">
+            <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
   </div>
 
   <script src="app.js"></script>
