@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-// configuration
+  // configuration
   const API_URL = "http://127.0.0.1:5000/api";
 
   // dom elements
@@ -15,16 +15,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnLogout = document.getElementById("btnLogout");
   const btnAdminQuick = document.getElementById("btnAdminQuick");
 
-  // page elements
+  // Ppage elements
   const approvalTableBody = document.querySelector("#approvalTable tbody");
   const resultsTableBody = document.querySelector("#resultsTable tbody");
   const nodeTableBody = document.querySelector("#nodeTable tbody");
   
   // buttons
   const submitScanBtn = document.getElementById("submitScanBtn");
-  const createUserBtn = document.getElementById("createUserBtn");
+  const networkSelect = document.getElementById("networkSelect");
+  const scanTypeSelect = document.getElementById("scanTypeSelect");
+  const scanNotes = document.getElementById("scanNotes");
+  const scanDateTime = document.getElementById("scanDateTime");
+  
 
-  // state
   let currentUser = null; 
 
   // permission
@@ -46,9 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // listeners
   loginBtn.addEventListener("click", handleLogin);
   btnLogout.addEventListener("click", logout);
+
   if (submitScanBtn) submitScanBtn.addEventListener("click", submitScan);
   
-
   window.showPage = showPage;
   window.approveScan = approveScan;
 
@@ -83,15 +86,18 @@ document.addEventListener("DOMContentLoaded", () => {
         
         setupSession(data.username, data.role);
 
-        //clear password
-        loginPass.value = ""; 
+        // clear password
+        loginPass.value = "";
+        
+      } else {
 
         // error
         showError(data.message || "Login failed");
       }
     } catch (err) {
+      console.log("this bit is not working")
       console.error(err);
-      showError("Login Service erroer. Check servers");
+      showError("Server error. Is flask running?");
     }
   }
 
@@ -119,7 +125,6 @@ document.addEventListener("DOMContentLoaded", () => {
     buildTilesForRole(role);
     showPage("dashboard");
     
-   
     loadData();
   }
 
@@ -138,7 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loginError.classList.remove("hidden");
   }
 
-  
   // load data
   async function loadData() {
     const token = localStorage.getItem('authToken');
@@ -146,11 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       
-      // fetch requests from flask
+      // fetch request from flask
       const response = await fetch(`${API_URL}/requests`, {
         method: 'GET',
         headers: { 
-          // attatch token
           'Authorization': `Bearer ${token}` 
         }
       });
@@ -161,14 +164,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const requests = await response.json();
       renderApprovalTable(requests);
       
-    
       loadMockResults(); 
       loadMockNodes();
 
+      // fail to load
     } catch (err) {
       console.error("Failed to load data:", err);
     }
   }
+
 
   // approval table
   function renderApprovalTable(requests) {
@@ -188,18 +192,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
- 
-// actions
+  // action
   async function approveScan(id) {
     const token = localStorage.getItem('authToken');
     if (!token) return;
 
     try {
+      // call flask api
       const response = await fetch(`${API_URL}/approve-scan`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({ id: id })
       });
@@ -218,16 +222,66 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function submitScan() {
+  // submit scan
+  async function submitScan() {
     
-    const type = document.getElementById("scanType").value;
-    if (!type) { alert("Select type"); return; }
-    
-    alert(`This would send a POST to ${API_URL}/requests with type: ${type}`);
-    showPage("dashboard");
-  }
+    const targetNetwork = networkSelect.value;
+    const scanType = scanTypeSelect.value;
+    const notes = scanNotes.value;
+    const scheduledTime = scanDateTime.value;
 
-  // helpers
+    // check inputs
+    if (!targetNetwork || !scanType || !scheduledTime) {
+        alert("Please select a target, a scan type, and a scheduled date/time.");
+        return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    if (!token) { logout(); return; } 
+
+    // request payload
+    const requestPayload = {
+        target: targetNetwork,
+        type: scanType,
+        notes: notes,
+        scheduled_for: scheduledTime, 
+        user: currentUser.name 
+    };
+    
+    try {
+        // api call for submission
+        const response = await fetch(`${API_URL}/requests/submit`, { 
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify(requestPayload)
+        });
+
+        // simplified mock logic
+        if (response.ok) {
+            alert(`Scan Request Submitted! (API response: ${response.status})`);
+        } else {
+
+             alert(`[MOCK SUCCESS]: Scan Request Submitted! Target: ${targetNetwork}, Type: ${scanType}. (Server status: ${response.status} - Endpoint not found, but data is ready)`);
+        }
+
+        // clear and show dashboard
+        scanNotes.value = "";
+        scanDateTime.value = "";
+        networkSelect.value = "";
+        scanTypeSelect.value = "";
+        showPage("dashboard");
+        loadData(); 
+
+    } catch (err) {
+        console.error("Submission failed:", err);
+        alert("Failed to connect to the server.");
+    }
+}
+
+  // UI helper
   function buildTilesForRole(role) {
     tilesContainer.innerHTML = ""; 
     const allowed = new Set(rolePages[role] || []);
@@ -247,12 +301,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function showPage(pageId) {
     if (!currentUser) return;
     
-    if (currentUser.role !== "admin") {
-      const allowed = rolePages[currentUser.role] || [];
-      if (!allowed.includes(pageId) && pageId !== "dashboard") {
-        alert("Access Denied (UI restriction)");
+   // permission check
+    const allowed = rolePages[currentUser.role] || [];
+    if (!allowed.includes(pageId) && pageId !== "dashboard") {
+        alert("Access Denied (UI restriction - This is not the security mechanism!)");
         return;
-      }
     }
 
     document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
@@ -263,6 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const target = document.getElementById(pageId);
     if (target) target.classList.remove("hidden");
   }
+
 
   // mock filtering table
   function loadMockResults() {

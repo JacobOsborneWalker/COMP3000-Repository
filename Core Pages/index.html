@@ -1,143 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Wireless Monitoring System — Dashboard</title>
-
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS - Role-Based Access Control Demo</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="loginScreen">
-    <div id="loginBox">
-      <h1>WMS Login</h1>
-
-      <input id="loginUser" type="text" placeholder="Username (admin, safeguard, auditor, ict, staff)" />
-      <input id="loginPass" type="password" placeholder="Password" />
-
-      <p id="loginError" class="error hidden"></p>
-      <button id="loginBtn">Login</button>
-
-      <p class="hint">Test accounts: <br>
-        admin/admin123 · safeguard/safe123 · auditor/audit123 · ict/ict123 · staff/staff123
-      </p>
+    <div id="loginScreen">
+        <div id="loginBox">
+            <h1>Wireless Monitoring System</h1>
+            <p class="hint">Login to proceed. (e.g., admin / admin123)</p>
+            <input type="text" id="loginUser" class="login-input" placeholder="Username" value="admin">
+            <input type="password" id="loginPass" class="login-input" placeholder="Password" value="admin123">
+            <button id="loginBtn">Log In</button>
+            <p id="loginError" class="hidden"></p>
+        </div>
     </div>
-  </div>
 
-  <div id="app" class="hidden">
+    <div id="app" class="hidden">
+        <header>
+            <h1>WMS Dashboard</h1>
+            <div class="user-info-bar">
+                <span id="userInfo"></span>
+                <button id="btnAdminQuick" class="hidden" onclick="showPage('admin')">Admin Area</button>
+                <button id="btnLogout">Logout</button>
+            </div>
+        </header>
 
-    <header id="topbar">
-      <div id="brand">Wireless Monitoring System</div>
-      <div id="userArea">
-        <span id="userInfo"></span>
-        <button id="btnLogout" class="textBtn">Logout</button>
-        <button id="btnAdminQuick" class="textBtn hidden">Admin</button>
-      </div>
-    </header>
-
-    <main id="main">
-
-      <section id="dashboard" class="page hidden">
-        <h2>Dashboard</h2>
-        <p class="sub">Please select a tile to continu</p>
-
-        <div id="tiles" class="tilesGrid">
-          </div>
-      </section>
-
-      <section id="createScan" class="page hidden contentPage">
-        <h2>Create Scan Request</h2>
-        <div class="card">
-          <label>Scan Type</label>
-          <select id="scanType">
-            <option value="">-- Select --</option>
-            <option>WiFi Scan</option>
-            <option>Bluetooth Scan</option>
-            <option>Both</option>
-          </select>
-
-          <label>Notes</label>
-          <textarea id="scanNote" placeholder="Reason / location / other notes"></textarea>
-
-          <p id="scanError" class="error hidden"></p>
-          <p id="scanSuccess" class="success hidden"></p>
-
-          <div class="actions">
-            <button id="submitScanBtn">Submit Request</button>
-            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
-          </div>
+        <div id="dashboard" class="page">
+            <h2>System Overview</h2>
+            <div id="tiles">
+                </div>
+            <p>Welcome to your Wireless Monitoring dashboard. Use the tiles above to navigate.</p>
         </div>
-      </section>
 
-      <section id="approval" class="page hidden contentPage">
-        <h2>Scan Approval Dashboard</h2>
-        <div class="card">
-          <table id="approvalTable">
-            <thead><tr><th>Request ID</th><th>Type</th><th>User</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody></tbody>
-          </table>
+        <div id="createScan" class="page hidden">
+            <h2><span class="material-icons mi">wifi_tethering</span> Submit New Scan Request</h2>
+            
+            <div class="form-group">
+                <label for="networkSelect">Target Network:</label>
+                <select id="networkSelect" required>
+                    <option value="" disabled selected>-- Select a registered network --</option>
+                    <option value="school_wifi">School Guest Wi-Fi (SSID: GuestNet)</option>
+                    <option value="admin_lan">Admin LAN (Wired connection)</option>
+                    <option value="safe_net">Safeguard Private Network</option>
+                    <option value="ict_test">ICT Testing Zone</option>
+                </select>
+            </div>
 
-          <div class="actions">
-            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
-          </div>
+            <div class="form-group">
+                <label for="scanTypeSelect">Scan Type:</label>
+                <select id="scanTypeSelect" required>
+                    <option value="" disabled selected>-- Choose scan type --</option>
+                    <option value="passive">Passive (Non-intrusive monitoring)</option>
+                    <option value="active">Active (Full network probes)</option>
+                    <option value="deep_passive">Deep Passive (Deep packet inspection)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="scanNotes">Notes / Justification:</label>
+                <textarea id="scanNotes" rows="4" placeholder="Briefly describe the purpose of this scan..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="scanDateTime">Schedule Date and Time:</label>
+                <input type="datetime-local" id="scanDateTime" required>
+            </div>
+
+            <div class="action-buttons">
+                <button id="submitScanBtn" class="primary-btn">Submit Scan Request</button>
+                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            </div>
         </div>
-      </section>
-
-      <section id="results" class="page hidden contentPage">
-        <h2>Scan Results</h2>
-        <div class="card">
-          <table id="resultsTable">
-            <thead><tr><th>Request ID</th><th>SSID/Device</th><th>Signal</th><th>Security</th></tr></thead>
-            <tbody></tbody>
-          </table>
-
-          <div class="actions">
-            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
-          </div>
+        
+        <div id="approval" class="page hidden">
+            <h2><span class="material-icons mi">assignment_turned_in</span> Pending Scan Approvals</h2>
+            <p>Access to approve requests is controlled by JWT Role-Based Access Control on the Flask API.</p>
+            <table id="approvalTable">
+                <thead>
+                    <tr><th>ID</th><th>Type</th><th>Requested By</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <div class="action-buttons">
+                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            </div>
         </div>
-      </section>
 
-      <section id="nodes" class="page hidden contentPage">
-        <h2>Node Health Monitor</h2>
-        <div class="card">
-          <table id="nodeTable">
-            <thead><tr><th>Node ID</th><th>Status</th><th>Battery</th><th>Last Seen</th></tr></thead>
-            <tbody></tbody>
-          </table>
-          <div class="actions">
-            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
-          </div>
+        <div id="results" class="page hidden">
+            <h2><span class="material-icons mi">wifi</span> Scan Results</h2>
+            <p>Overview of completed scan results.</p>
+            <table id="resultsTable">
+                <thead>
+                    <tr><th>Request ID</th><th>SSID/Device</th><th>Signal</th><th>Security</th></tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <div class="action-buttons">
+                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            </div>
         </div>
-      </section>
-
-      <section id="admin" class="page hidden contentPage">
-        <h2>Admin Panel</h2>
-        <div class="card">
-          <label>New username</label>
-          <input id="newUser" placeholder="username" />
-          <label>Role</label>
-          <select id="newRole">
-            <option>admin</option><option>safeguard</option><option>auditor</option><option>staff</option>
-          </select>
-          <div class="actions">
-            <button id="createUserBtn">Create User</button>
-            <button onclick="showPage('dashboard')" class="secondary">Back to Dashboard</button>
-          </div>
-          <p id="adminMessage" class="success hidden"></p>
-
-          <h3 style="margin-top:20px">Existing users</h3>
-          <table id="userTable">
-            <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
-            <tbody></tbody>
-          </table>
+        
+        <div id="nodes" class="page hidden">
+            <h2><span class="material-icons mi">memory</span> Monitoring Node Health</h2>
+            <p>Status of deployed hardware monitoring nodes.</p>
+            <table id="nodeTable">
+                <thead>
+                    <tr><th>Node ID</th><th>Status</th><th>CPU Usage</th><th>Last Check-in</th></tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <div class="action-buttons">
+                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            </div>
         </div>
-      </section>
 
-    </main>
-  </div>
+        <div id="admin" class="page hidden">
+            <h2><span class="material-icons mi">security</span> System Administration</h2>
+            <p>This area is typically only visible to `admin` roles, enforced by the `buildTilesForRole` function (UI) and API policy (security).</p>
+            <button id="createUserBtn" disabled class="primary-btn">Create User (Mock)</button>
+             <div class="action-buttons">
+                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            </div>
+        </div>
 
-  <script src="app.js"></script>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
