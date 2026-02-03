@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
   // configuration
-  const API_URL = "http://127.0.0.1:5000/api";
+  const API_URL = "http://10.137.45.6:5000/api";
 
   // dom elements
   const loginBtn = document.getElementById("loginBtn");
