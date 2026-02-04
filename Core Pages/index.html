@@ -3,30 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WMS - Role-Based Access Control Demo</title>
+    <title>WMS Enterprise - Wireless Monitoring System</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="loginScreen">
         <div id="loginBox">
-            <h1>Wireless Monitoring System</h1>
-            <p class="hint">Login to proceed. (e.g., admin / admin123)</p>
+            <span class="material-icons" style="font-size: 48px; color: #007bff;">security</span>
+            <h1>WMS Enterprise</h1>
+            <p class="hint">Login to access monitoring tools</p>
             <input type="text" id="loginUser" class="login-input" placeholder="Username" value="admin">
             <input type="password" id="loginPass" class="login-input" placeholder="Password" value="admin123">
-            <button id="loginBtn">Log In</button>
+            <button id="loginBtn">Authorize Access</button>
             <p id="loginError" class="hidden"></p>
         </div>
     </div>
 
     <div id="app" class="hidden">
         <header>
-            <h1>WMS Dashboard</h1>
+            <div class="brand">
+                <span class="material-icons">radar</span>
+                <h1>WMS Dashboard</h1>
+            </div>
             <div class="user-info-bar">
                 <span id="userInfo"></span>
-                <button id="btnAdminQuick" class="hidden" onclick="showPage('admin')">Admin Area</button>
+                <button id="btnAdminQuick" class="hidden">Admin Panel</button>
                 <button id="btnLogout">Logout</button>
             </div>
         </header>
@@ -35,101 +38,131 @@
             <h2>System Overview</h2>
             <div id="tiles">
                 </div>
-            <p>Welcome to your Wireless Monitoring dashboard. Use the tiles above to navigate.</p>
         </div>
 
         <div id="createScan" class="page hidden">
             <h2><span class="material-icons mi">wifi_tethering</span> Submit New Scan Request</h2>
-            
-            <div class="form-group">
-                <label for="networkSelect">Target Network:</label>
-                <select id="networkSelect" required>
-                    <option value="" disabled selected>-- Select a registered network --</option>
-                    <option value="school_wifi">School Guest Wi-Fi (SSID: GuestNet)</option>
-                    <option value="admin_lan">Admin LAN (Wired connection)</option>
-                    <option value="safe_net">Safeguard Private Network</option>
-                    <option value="ict_test">ICT Testing Zone</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="scanTypeSelect">Scan Type:</label>
-                <select id="scanTypeSelect" required>
-                    <option value="" disabled selected>-- Choose scan type --</option>
-                    <option value="passive">Passive (Non-intrusive monitoring)</option>
-                    <option value="active">Active (Full network probes)</option>
-                    <option value="deep_passive">Deep Passive (Deep packet inspection)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="scanNotes">Notes / Justification:</label>
-                <textarea id="scanNotes" rows="4" placeholder="Briefly describe the purpose of this scan..."></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="scanDateTime">Schedule Date and Time:</label>
-                <input type="datetime-local" id="scanDateTime" required>
-            </div>
-
-            <div class="action-buttons">
-                <button id="submitScanBtn" class="primary-btn">Submit Scan Request</button>
-                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            <div class="card">
+                <div class="form-group">
+                    <label>Target Network / SSID:</label>
+                    <select id="networkSelect">
+                        <option value="" disabled selected>-- Select Target --</option>
+                        <option value="GuestNet">GuestNet (VLAN 10)</option>
+                        <option value="StaffSecure">StaffSecure (VLAN 20)</option>
+                        <option value="IoT_Sensors">IoT_Sensors (VLAN 30)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Scan Profile:</label>
+                    <select id="scanTypeSelect">
+                        <option value="Passive">Passive Monitoring (Stealth)</option>
+                        <option value="Active">Active Probe (Intrusive)</option>
+                        <option value="Deep">Deep Packet Inspection</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Scheduled Start:</label>
+                    <input type="datetime-local" id="scanDateTime">
+                </div>
+                <div class="action-buttons">
+                    <button id="submitScanBtn" class="primary-btn">Queue Scan Request</button>
+                    <button onclick="showPage('dashboard')" class="secondary-btn">Cancel</button>
+                </div>
             </div>
         </div>
-        
+
         <div id="approval" class="page hidden">
-            <h2><span class="material-icons mi">assignment_turned_in</span> Pending Scan Approvals</h2>
-            <p>Access to approve requests is controlled by JWT Role-Based Access Control on the Flask API.</p>
+            <h2><span class="material-icons mi">assignment_turned_in</span> Pending Approvals</h2>
             <table id="approvalTable">
                 <thead>
-                    <tr><th>ID</th><th>Type</th><th>Requested By</th><th>Status</th><th>Action</th></tr>
+                    <tr><th>Request ID</th><th>Type</th><th>Requester</th><th>Status</th><th>Action</th></tr>
                 </thead>
-                <tbody>
-                    </tbody>
+                <tbody></tbody>
             </table>
-            <div class="action-buttons">
-                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
-            </div>
+            <button onclick="showPage('dashboard')" class="secondary-btn mt-20">Return to Dashboard</button>
         </div>
 
         <div id="results" class="page hidden">
-            <h2><span class="material-icons mi">wifi</span> Scan Results</h2>
-            <p>Overview of completed scan results.</p>
-            <table id="resultsTable">
-                <thead>
-                    <tr><th>Request ID</th><th>SSID/Device</th><th>Signal</th><th>Security</th></tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-            <div class="action-buttons">
-                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+            <h2><span class="material-icons mi">history</span> Archive & Results</h2>
+            <div class="card">
+                <table id="resultsListTable">
+                    <thead>
+                        <tr><th>ID</th><th>Timestamp</th><th>Target SSID</th><th>Execution Status</th><th>Report</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
+            <button onclick="showPage('dashboard')" class="secondary-btn">Back</button>
         </div>
-        
-        <div id="nodes" class="page hidden">
-            <h2><span class="material-icons mi">memory</span> Monitoring Node Health</h2>
-            <p>Status of deployed hardware monitoring nodes.</p>
-            <table id="nodeTable">
-                <thead>
-                    <tr><th>Node ID</th><th>Status</th><th>CPU Usage</th><th>Last Check-in</th></tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-            <div class="action-buttons">
-                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+
+        <div id="scanDetail" class="page hidden">
+            <h2><span class="material-icons mi">analytics</span> Detailed Threat Analysis</h2>
+            
+            <div class="card mb-20">
+                <h3>Report Metadata</h3>
+                <div class="meta-grid">
+                    <div><strong>Scan ID:</strong> <span id="detailId"></span></div>
+                    <div><strong>Network:</strong> <span id="detailNetwork"></span></div>
+                    <div><strong>Status:</strong> <span id="detailType"></span></div>
+                    <div><strong>Completion:</strong> <span id="detailTime"></span></div>
+                </div>
+            </div>
+
+            <div class="card mb-20">
+                <h3>Detected Assets (MAC-to-Identity Mapping)</h3>
+                <p class="hint">Items highlighted in Red are not in your <strong>Known Devices</strong> registry.</p>
+                <table id="deviceLogTable">
+                    <thead>
+                        <tr><th>MAC Address</th><th>Identification</th><th>Signal Strength</th><th>Channel</th><th>Flags</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="summary-box">
+                <h3><span class="material-icons mi" style="font-size: 20px;">insights</span> Security Summary</h3>
+                <div class="meta-grid">
+                    <div><strong>Total Devices:</strong> <span id="sumDevices"></span></div>
+                    <div><strong>Rogue Indicators:</strong> <span id="sumRogue"></span></div>
+                    <div><strong>Network Health:</strong> <span id="sumHealth">Optimal</span></div>
+                </div>
+            </div>
+
+            <div class="action-buttons mt-20">
+                <button onclick="showPage('results')" class="secondary-btn">Back to History</button>
+                <button onclick="showPage('knownDevices')" class="primary-btn">Manage Whitelist</button>
             </div>
         </div>
 
-        <div id="admin" class="page hidden">
-            <h2><span class="material-icons mi">security</span> System Administration</h2>
-            <p>This area is typically only visible to `admin` roles, enforced by the `buildTilesForRole` function (UI) and API policy (security).</p>
-            <button id="createUserBtn" disabled class="primary-btn">Create User (Mock)</button>
-             <div class="action-buttons">
-                <button onclick="showPage('dashboard')" class="secondary-btn">Back to Dashboard</button>
+        <div id="knownDevices" class="page hidden">
+            <h2><span class="material-icons mi">fact_check</span> Asset Whitelist</h2>
+            <div class="card mb-20">
+                <h3>Register New Authorized Device</h3>
+                <div class="meta-grid">
+                    <input type="text" id="newDevMac" placeholder="MAC (e.g., 00:1A:2B...)">
+                    <input type="text" id="newDevName" placeholder="Device Nickname (e.g., CEO Laptop)">
+                </div>
+                <button onclick="addDeviceToRegistry()" class="primary-btn mt-10">Add to Whitelist</button>
             </div>
+            
+            <table id="knownDevicesTable">
+                <thead>
+                    <tr><th>MAC Address</th><th>Nickname / Owner</th><th>Date Added</th><th>Actions</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button onclick="showPage('dashboard')" class="secondary-btn mt-20">Return</button>
+        </div>
+
+        <div id="nodes" class="page hidden">
+            <h2><span class="material-icons mi">router</span> Monitoring Node Status</h2>
+            <table id="nodeTable">
+                <thead>
+                    <tr><th>Node ID</th><th>Status</th><th>Signal Stability</th><th>Uptime</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button onclick="showPage('dashboard')" class="secondary-btn mt-20">Back</button>
         </div>
 
     </div>

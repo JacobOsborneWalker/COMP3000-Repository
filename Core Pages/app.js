@@ -1,5 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // --- STATE ---
+    let currentUser = null;
+    let knownDevicesRegistry = [
+        { mac: "AA:BB:CC:11:22:33", name: "Internal Database Server", date: "2026-01-01" },
+        { mac: "12:34:56:78:90:AB", name: "Admin Dashboard Console", date: "2026-01-05" }
+    ];
 
+<<<<<<< Updated upstream
   // configuration
   const API_URL = "http://10.137.45.6:5000/api";
 
@@ -246,90 +253,181 @@ document.addEventListener("DOMContentLoaded", () => {
         notes: notes,
         scheduled_for: scheduledTime, 
         user: currentUser.name 
+=======
+    const ROLE_PERMISSIONS = {
+        admin: ["dashboard", "createScan", "results", "knownDevices", "nodes", "admin"],
+        ict: ["dashboard", "createScan", "results", "knownDevices", "nodes"],
+        staff: ["dashboard", "createScan", "results"]
+>>>>>>> Stashed changes
     };
-    
-    try {
-        // api call for submission
-        const response = await fetch(`${API_URL}/requests/submit`, { 
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify(requestPayload)
+
+    const MOCK_SCANS = [
+        { id: "SCAN-501", ssid: "GuestNet", time: "2026-01-16 08:30", status: "Success" },
+        { id: "SCAN-502", ssid: "StaffSecure", time: "2026-01-15 14:00", status: "Success" }
+    ];
+
+    const MOCK_REPORT_DEVICES = {
+        "SCAN-501": [
+            { mac: "AA:BB:CC:11:22:33", signal: "-42" },
+            { mac: "00:E0:4C:68:01:AF", signal: "-88" } // Unknown
+        ],
+        "SCAN-502": [
+            { mac: "12:34:56:78:90:AB", signal: "-30" }
+        ]
+    };
+
+    // --- TIME SELECTOR INITIALIZATION ---
+    const dateInput = document.getElementById("scanDateTime");
+    const now = new Date();
+    // Setting min date to 'now' to prevent past selection
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    dateInput.min = now.toISOString().slice(0, 16);
+    dateInput.value = now.toISOString().slice(0, 16);
+
+    window.setQuickTime = (minutes) => {
+        const target = new Date();
+        target.setMinutes(target.getMinutes() + minutes - target.getTimezoneOffset());
+        dateInput.value = target.toISOString().slice(0, 16);
+    };
+
+    // --- LOGIN LOGIC ---
+    document.getElementById("loginBtn").addEventListener("click", () => {
+        const user = document.getElementById("loginUser").value;
+        const pass = document.getElementById("loginPass").value;
+        if (user === "admin" && pass === "admin123") initSession("System Admin", "admin");
+        else alert("Unauthorized access. Check credentials.");
+    });
+
+    function initSession(name, role) {
+        currentUser = { name, role };
+        document.getElementById("userInfo").textContent = `${name} (${role.toUpperCase()})`;
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+        
+        // Show Admin Panel shortcut if admin
+        const adminBtn = document.getElementById("btnAdminQuick");
+        adminBtn.classList.toggle("hidden", role !== 'admin');
+        adminBtn.onclick = () => showPage("admin");
+
+        buildTiles(role);
+        showPage("dashboard");
+    }
+
+    document.getElementById("btnLogout").addEventListener("click", () => location.reload());
+
+    // --- NAVIGATION ---
+    window.showPage = (id) => {
+        document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+        document.getElementById(id).classList.remove("hidden");
+        
+        if (id === "results") renderScanHistory();
+        if (id === "knownDevices") renderWhitelist();
+        if (id === "admin") renderAdminPanel();
+        if (id === "nodes") renderNodes();
+    };
+
+    function buildTiles(role) {
+        const container = document.getElementById("tiles");
+        container.innerHTML = "";
+        const defs = [
+            { id: "createScan", title: "Initiate Scan", icon: "wifi_tethering" },
+            { id: "results", title: "Scan Archive", icon: "history" },
+            { id: "knownDevices", title: "Asset Registry", icon: "fact_check" },
+            { id: "nodes", title: "Node Health", icon: "memory" },
+            { id: "admin", title: "Admin Center", icon: "admin_panel_settings" }
+        ];
+
+        defs.forEach(d => {
+            if (ROLE_PERMISSIONS[role].includes(d.id)) {
+                const div = document.createElement("div");
+                div.className = "tile";
+                div.innerHTML = `<span class="material-icons">${d.icon}</span><h3>${d.title}</h3>`;
+                div.onclick = () => showPage(d.id);
+                container.appendChild(div);
+            }
+        });
+    }
+
+    // --- SCAN REPORTS & THREAT DETECTION ---
+    function renderScanHistory() {
+        const tbody = document.querySelector("#resultsListTable tbody");
+        tbody.innerHTML = "";
+        MOCK_SCANS.forEach(s => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td><strong>${s.id}</strong></td><td>${s.ssid}</td><td>${s.time}</td>
+                            <td><span class="safe-label">${s.status}</span></td>
+                            <td><button onclick="viewFullReport('${s.id}')">Analyze</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.viewFullReport = (id) => {
+        const devices = MOCK_REPORT_DEVICES[id] || MOCK_REPORT_DEVICES["SCAN-501"];
+        document.getElementById("detailId").textContent = id;
+        document.getElementById("detailTime").textContent = "Completed 1s ago";
+        
+        const tbody = document.querySelector("#deviceLogTable tbody");
+        tbody.innerHTML = "";
+        let unknownCount = 0;
+
+        devices.forEach(d => {
+            const registryMatch = knownDevicesRegistry.find(k => k.mac.toUpperCase() === d.mac.toUpperCase());
+            const tr = document.createElement("tr");
+            if (!registryMatch) unknownCount++;
+
+            tr.innerHTML = `
+                <td style="font-family:monospace">${d.mac}</td>
+                <td>${registryMatch ? `<span class="safe-label">${registryMatch.name}</span>` : `<span class="threat-high">UNKNOWN ASSET</span>`}</td>
+                <td>${d.signal} dBm</td>
+                <td>${registryMatch ? 'Trusted' : '⚠️ Investigating'}</td>
+            `;
+            tbody.appendChild(tr);
         });
 
-        // simplified mock logic
-        if (response.ok) {
-            alert(`Scan Request Submitted! (API response: ${response.status})`);
-        } else {
+        document.getElementById("sumUnknown").textContent = unknownCount;
+        showPage("scanDetail");
+    };
 
-             alert(`[MOCK SUCCESS]: Scan Request Submitted! Target: ${targetNetwork}, Type: ${scanType}. (Server status: ${response.status} - Endpoint not found, but data is ready)`);
+    // --- ASSET MANAGEMENT ---
+    window.addDeviceToRegistry = () => {
+        const mac = document.getElementById("newDevMac").value.trim().toUpperCase();
+        const name = document.getElementById("newDevName").value.trim();
+        if (mac && name) {
+            knownDevicesRegistry.push({ mac, name, date: new Date().toISOString().split('T')[0] });
+            renderWhitelist();
+            document.getElementById("newDevMac").value = "";
+            document.getElementById("newDevName").value = "";
         }
+    };
 
-        // clear and show dashboard
-        scanNotes.value = "";
-        scanDateTime.value = "";
-        networkSelect.value = "";
-        scanTypeSelect.value = "";
-        showPage("dashboard");
-        loadData(); 
-
-    } catch (err) {
-        console.error("Submission failed:", err);
-        alert("Failed to connect to the server.");
-    }
-}
-
-  // UI helper
-  function buildTilesForRole(role) {
-    tilesContainer.innerHTML = ""; 
-    const allowed = new Set(rolePages[role] || []);
-    tileDefs.forEach(td => {
-      if (allowed.has(td.page)) {
-        const el = document.createElement("div");
-        el.className = "tile";
-        el.id = td.id;
-        el.innerHTML = `<span class="material-icons mi">${td.icon}</span>
-                        <h3>${td.title}</h3><p>${td.desc}</p>`;
-        el.onclick = () => showPage(td.page);
-        tilesContainer.appendChild(el);
-      }
-    });
-  }
-
-  function showPage(pageId) {
-    if (!currentUser) return;
-    
-   // permission check
-    const allowed = rolePages[currentUser.role] || [];
-    if (!allowed.includes(pageId) && pageId !== "dashboard") {
-        alert("Access Denied (UI restriction - This is not the security mechanism!)");
-        return;
+    function renderWhitelist() {
+        const tbody = document.querySelector("#knownDevicesTable tbody");
+        tbody.innerHTML = "";
+        knownDevicesRegistry.forEach((d, i) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${d.mac}</td><td>${d.name}</td><td>${d.date}</td>
+                            <td><button onclick="removeDevice(${i})">Remove</button></td>`;
+            tbody.appendChild(tr);
+        });
     }
 
-    document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
-    if (pageId === "dashboard") {
-      document.getElementById("dashboard").classList.remove("hidden");
-      return;
+    window.removeDevice = (index) => {
+        knownDevicesRegistry.splice(index, 1);
+        renderWhitelist();
+    };
+
+    // --- ADMIN & NODES ---
+    function renderAdminPanel() {
+        const tbody = document.querySelector("#userTable tbody");
+        tbody.innerHTML = `<tr><td>admin</td><td><span class="badge badge-admin">admin</span></td><td>Today 08:30</td><td>Full Access</td></tr>`;
+        const log = document.getElementById("auditLogs");
+        log.innerHTML = `<div class="log-entry">[${new Date().toLocaleTimeString()}] SECURITY_EVENT: Admin Session Initiated</div>
+                         <div class="log-entry">[${new Date().toLocaleTimeString()}] WHITELIST_ACCESS: Asset Registry viewed.</div>`;
     }
-    const target = document.getElementById(pageId);
-    if (target) target.classList.remove("hidden");
-  }
 
-
-  // mock filtering table
-  function loadMockResults() {
-    resultsTableBody.innerHTML = `
-      <tr><td>REQ-000</td><td>SchoolWiFi</td><td>-55 dBm</td><td>WPA2</td></tr>
-      <tr><td>REQ-002</td><td>BluetoothDevice</td><td>-40 dBm</td><td>BLE</td></tr>
-    `;
-  }
-  function loadMockNodes() {
-    nodeTableBody.innerHTML = `
-      <tr><td>Node-01</td><td>Online</td><td>87%</td><td>30s ago</td></tr>
-      <tr><td>Node-02</td><td>Offline</td><td>—</td><td>2h ago</td></tr>
-    `;
-  }
-
+    function renderNodes() {
+        const tbody = document.querySelector("#nodeTable tbody");
+        tbody.innerHTML = `<tr><td>NODE-ALPHA</td><td>10.0.0.50</td><td>12%</td><td><span class="safe-label">Active</span></td></tr>
+                           <tr><td>NODE-BRAVO</td><td>10.0.0.51</td><td>--</td><td><span class="threat-high">Offline</span></td></tr>`;
+    }
 });
