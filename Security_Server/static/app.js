@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     let currentUser = null;
 
+    // url
     const API_URL = "http://127.0.0.1:5000/api";
 
     const loginBtn = document.getElementById("loginBtn");
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         staff: ["createScan", "results", "dashboard"]
     };
 
+    // titles
     const tileDefs = [
         { id: "t-create", title: "Create Scan", icon: "wifi_tethering", page: "createScan" },
         { id: "t-approve", title: "Approve Requests", icon: "assignment_turned_in", page: "approval" },
@@ -41,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnLogout.addEventListener("click", logout);
     if(submitScanBtn) submitScanBtn.addEventListener("click", submitScan);
 
+    // login handler
     function handleLogin() {
         const username = loginUser.value.trim();
         const password = loginPass.value.trim();
@@ -57,12 +60,14 @@ document.addEventListener("DOMContentLoaded", () => {
                   localStorage.setItem('authUser', JSON.stringify({name:username, role:resp.data.role}));
                   setupSession(username, resp.data.role);
               } else {
+                console.log("working correctly here")
                   loginError.textContent=resp.data.error || "Login failed";
                   loginError.classList.remove("hidden");
               }
           });
     }
 
+    // session setup
     function setupSession(name, role){
         currentUser={name,role};
         userInfo.textContent=`${name} (${role})`;
@@ -71,16 +76,19 @@ document.addEventListener("DOMContentLoaded", () => {
         btnAdminQuick.classList.toggle("hidden", role!=="admin");
         btnAdminQuick.onclick=()=>showPage("admin");
         buildTilesForRole(role);
+        console.log("this is working here")
         showPage("dashboard");
         loadData();
     }
 
+    // logout
     function logout(){
         localStorage.removeItem('authToken'); localStorage.removeItem('authUser'); currentUser=null;
         app.classList.add("hidden"); loginScreen.classList.remove("hidden");
         document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     }
 
+    // build tiles
     function buildTilesForRole(role){
         tilesContainer.innerHTML="";
         tileDefs.forEach(tile=>{
@@ -94,12 +102,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // show pages
     function showPage(id){
         document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
         const page=document.getElementById(id);
         if(page) page.classList.remove("hidden");
     }
 
+    // load data
     function loadData(){
         const token=localStorage.getItem('authToken');
         if(!token) return;
@@ -113,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadMockNodes();
     }
 
+    // approval tables
     function renderApprovalTable(requests){
         approvalTableBody.innerHTML="";
         requests.forEach(r=>{
@@ -123,6 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
             approvalTableBody.appendChild(tr);
         });
     }
+
+    // approve scan
 
     window.approveScan = function(id){
         fetch(`${API_URL}/approve-scan`, {
@@ -138,9 +151,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function submitScan(){
-        alert("Scan submitted (mock)");
+        alert("Scan submitted (currently not working");
     }
 
+    // mock results
     function loadMockResults(){
         resultsTableBody.innerHTML="";
         const rows=[
@@ -153,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resultsTableBody.appendChild(tr);
         });
     }
-
+    // mock nodes
     function loadMockNodes(){
         nodeTableBody.innerHTML="";
         const nodes=[

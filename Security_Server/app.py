@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 
-app = Flask(__name__)  # use default static/templates
+app = Flask(__name__)  #
 
 mock_users = [
     {"username":"admin","role":"admin"},
@@ -13,10 +13,13 @@ mock_requests = [
     {"id":"REQ-102","type":"Full","requested_by":"safeguard","status":"approved"}
 ]
 
+# home route
 @app.route("/")
 def home():
     return render_template("index.html")
 
+
+# login
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -27,25 +30,31 @@ def login():
         return jsonify({"access_token":"mocktoken123","role":user["role"]})
     return jsonify({"error":"Invalid credentials"}), 401
 
+
+# requests
 @app.route("/api/requests", methods=["GET"])
 def get_requests():
-    auth=request.headers.get("Authorization")
+    auth=request.headers.get("Authorisation")
     if auth!="Bearer mocktoken123":
-        return jsonify({"error":"Unauthorized"}), 401
+        return jsonify({"error":"Unauthorised"}), 401
     return jsonify(mock_requests)
 
+# approve scan
 @app.route("/api/approve-scan", methods=["POST"])
 def approve_scan():
-    auth=request.headers.get("Authorization")
+    auth=request.headers.get("Authorisation")
     if auth!="Bearer mocktoken123":
-        return jsonify({"error":"Unauthorized"}), 401
+        return jsonify({"error":"Unauthorised"}), 401
     data=request.get_json()
     req_id=data.get("id")
     for r in mock_requests:
         if r["id"]==req_id:
             r["status"]="approved"
-            return jsonify({"message":f"Request {req_id} approved"})
-    return jsonify({"error":"Request not found"}),404
+            return jsonify({"message":f"request {req_id} approved"})
+    return jsonify({"error":"request not found"}),404
 
 if __name__=="__main__":
     app.run(debug=True)
+
+
+# im going mental this isnt working ahahhahaha#
