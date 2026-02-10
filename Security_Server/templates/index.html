@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="screen">
+        <div id="loginBox">
+            <h1>Security Dashboard</h1>
+            <input id="loginUser" class="login-input" placeholder="Username">
+            <input id="loginPass" class="login-input" type="password" placeholder="Password">
+            <button id="loginBtn">Login</button>
+            <p id="loginError" class="hidden error"></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app" class="screen hidden">
+        <header>
+            <span id="userInfo"></span>
+            <div class="header-buttons">
+                <button id="btnAdminQuick" class="hidden">Admin Panel</button>
+                <button id="btnLogout">Logout</button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD TILES -->
+        <div id="tiles" class="tiles"></div>
+
+        <!-- === PAGES === -->
+
+        <!-- 1. DASHBOARD PAGE -->
+        <div id="dashboard" class="page">
+            <h2>Welcome to the Dashboard</h2>
+            <p>Select a tile above to navigate.</p>
+        </div>
+
+        <!-- 2. CREATE SCAN PAGE -->
+        <div id="createScan" class="page hidden">
+            <h2>Create Scan</h2>
+            <div class="form-group">
+                <label for="networkSelect">Target Network</label>
+                <select id="networkSelect">
+                    <option value="">Select Network</option>
+                    <option value="Network1">Network1</option>
+                    <option value="Network2">Network2</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="scanTypeSelect">Scan Type</label>
+                <select id="scanTypeSelect">
+                    <option value="">Select Type</option>
+                    <option value="Quick">Quick</option>
+                    <option value="Full">Full</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="scanNotes">Notes</label>
+                <textarea id="scanNotes" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="scanDateTime">Schedule</label>
+                <input type="datetime-local" id="scanDateTime">
+            </div>
+            <button id="submitScanBtn" class="primary-btn">Submit Scan</button>
+        </div>
+
+        <!-- 3. APPROVAL PAGE -->
+        <div id="approval" class="page hidden">
+            <h2>Pending Requests</h2>
+            <table id="approvalTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filled dynamically by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 4. RESULTS PAGE -->
+        <div id="results" class="page hidden">
+            <h2>Scan Results</h2>
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Target</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filled dynamically by JS -->
+                </tbody>
+            </table>
+
+            <h2>Nodes</h2>
+            <table id="nodeTable">
+                <thead>
+                    <tr>
+                        <th>MAC</th>
+                        <th>Name</th>
+                        <th>Last Seen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filled dynamically by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ADMIN PAGE -->
+        <div id="admin" class="page hidden">
+            <h2>Admin Panel</h2>
+            <p>Admin-only actions appear here.</p>
+        </div>
+    </div>
+</body>
+</html>
