@@ -1,3 +1,5 @@
+## auth - hangles login and JWT token creation
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from models import User

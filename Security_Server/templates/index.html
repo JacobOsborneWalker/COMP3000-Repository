@@ -55,8 +55,9 @@
                 <label for="scanTypeSelect">Scan Type</label>
                 <select id="scanTypeSelect">
                     <option value="">Select Type</option>
-                    <option value="Quick">Quick</option>
-                    <option value="Full">Full</option>
+                    <option value="Quick">Passive Scan</option>
+                    <option value="Active">Active Scan</option>
+                    <option value="Full">Deep Passive Scan</option>
                 </select>
             </div>
             <div class="form-group">
@@ -72,15 +73,33 @@
 
         <!-- 3. APPROVAL PAGE -->
         <div id="approval" class="page hidden">
-            <h2>Pending Requests</h2>
-            <table id="approvalTable">
+            <h2>Pending Scan Requests</h2>
+            <table id="pendingTable">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Type</th>
+                        <th>Request ID</th>
                         <th>User</th>
-                        <th>Status</th>
+                        <th>Network</th>
+                        <th>Type</th>
+                        <th>Time</th>
+                        <th>Justification</th>
                         <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filled dynamically by JS -->
+                </tbody>
+            </table>
+
+            <h2>Previous Scans</h2>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Decision</th>
+                        <th>Started By</th>
+                        <th>Approved By</th>
+                        <th>Key Data</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -92,33 +111,69 @@
         <!-- 4. RESULTS PAGE -->
         <div id="results" class="page hidden">
             <h2>Scan Results</h2>
-            <table id="resultsTable">
+
+            <div class="form-group">
+                <label for="scanSelect">Select Scan</label>
+                <select id="scanSelect">
+                    <option value="">-- Choose Scan --</option>
+                </select>
+            </div>
+
+            <!-- Scan Metadata Table -->
+            <h3>Scan Metadata</h3>
+            <table id="scanMetadataTable">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Target</th>
-                        <th>Status</th>
-                        <th>Notes</th>
+                        <th>Request ID</th>
+                        <th>Requested By</th>
+                        <th>Approved By</th>
+                        <th>Network</th>
+                        <th>Scan Type</th>
+                        <th>Timestamp</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Filled dynamically by JS -->
                 </tbody>
             </table>
 
-            <h2>Nodes</h2>
-            <table id="nodeTable">
+            <!-- Detected Devices Table -->
+            <h3>Detected Devices</h3>
+            <table id="devicesTable">
                 <thead>
                     <tr>
                         <th>MAC</th>
-                        <th>Name</th>
-                        <th>Last Seen</th>
+                        <th>Vendor</th>
+                        <th>Signal Strength (dBm)</th>
+                        <th>Channel</th>
+                        <th>Time Seen</th>
+                        <th>Flags</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Filled dynamically by JS -->
                 </tbody>
             </table>
+
+            <!-- Summary Insights Table -->
+            <h3>Summary Insights</h3>
+            <table id="summaryTable">
+                <thead>
+                    <tr>
+                        <th>Total Devices</th>
+                        <th>Suspicious Signals</th>
+                        <th>Rogue AP Indicators</th>
+                        <th>Peak Bandwidth / Congestion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+
+            <!-- Export Buttons -->
+            <div class="export-buttons">
+                <button id="exportCSV">Export CSV</button>
+                <button id="exportJSON">Export JSON</button>
+                <button id="exportPDF">Export PDF</button>
+            </div>
         </div>
 
         <!-- ADMIN PAGE -->

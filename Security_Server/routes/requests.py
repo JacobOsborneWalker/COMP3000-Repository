@@ -1,3 +1,5 @@
+## handles scan request
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
 from models import db, ScanRequest, User

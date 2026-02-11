@@ -1,0 +1,60 @@
+{
+  "users": [
+    {"id": 1, "username": "admin", "role": "admin"},
+    {"id": 2, "username": "staff", "role": "staff"},
+    {"id": 3, "username": "safeguard", "role": "safeguard"}
+  ],
+  "scan_requests": [
+    {
+      "id": "REQ-101",
+      "title": "Initial WiFi Survey",
+      "description": "Check signal and encryption",
+      "requester_id": 2,
+      "status": "pending",
+      "scheduled_time": "2026-02-12T10:00"
+    },
+    {
+      "id": "REQ-102",
+      "title": "Hidden AP Scan",
+      "description": "Look for hidden networks",
+      "requester_id": 3,
+      "status": "approved",
+      "scheduled_time": "2026-02-11T14:30"
+    }
+  ],
+  "scans": [
+    {
+      "id": "SCAN-1",
+      "request_id": "REQ-102",
+      "network": "Network1",
+      "type": "Passive",
+      "requested_by": 3,
+      "approved_by": 1,
+      "timestamp": "2026-02-11T14:35",
+      "notes": "No rogue APs"
+    },
+    {
+      "id": "SCAN-2",
+      "request_id": "REQ-101",
+      "network": "Network2",
+      "type": "Active",
+      "requested_by": 2,
+      "approved_by": 1,
+      "timestamp": "2026-02-12T10:15",
+      "notes": "Detected 3 hidden SSIDs"
+    }
+  ],
+  "detected_devices": {
+    "SCAN-1": [
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco", "signal": -50, "channel": 6, "timeSeen": "2026-02-11T14:36", "flags": ""},
+      {"mac": "11:22:33:44:55:66", "vendor": "TP-Link", "signal": -70, "channel": 1, "timeSeen": "2026-02-11T14:37", "flags": "suspicious"}
+    ],
+    "SCAN-2": [
+      {"mac": "12:34:56:78:90:AB", "vendor": "Netgear", "signal": -60, "channel": 11, "timeSeen": "2026-02-12T10:16", "flags": ""}
+    ]
+  },
+  "scan_summary": {
+    "SCAN-1": {"totalDevices": 2, "suspicious": 1, "rogueAP": "No", "bandwidth": "Low"},
+    "SCAN-2": {"totalDevices": 1, "suspicious": 0, "rogueAP": "No", "bandwidth": "Medium"}
+  }
+}

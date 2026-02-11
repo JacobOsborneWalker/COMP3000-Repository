@@ -1,3 +1,5 @@
+## seed - populates the database with the stater data
+
 from app import app
 from models import db, User
 
