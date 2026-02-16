@@ -1,0 +1,13 @@
+Sprint meeting 5
+Attended with Hai-Van Dang
+
+Key points from the meeting:
+The core webpage has been fully completed with a log in function
+the user can now add a scan, look at scans etc
+all information is hardcoded for now, and will be changed later.
+
+Things to work on for the next two weeks:
+Add to the report more information on existing solutions and how the project works
+Gain access to server.
+Enforce RBAC.
+

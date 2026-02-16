@@ -1,0 +1,16 @@
+Sprint meeting 7
+Attended with Hai-Van Dang
+
+Key points from meeting:
+Unavailable to attend Sprint meeting 6 Due to it being held remotely and whilst unavailable.
+Over the Christmas break, the RBAC was added, the server was accessed.
+Information was transferred over to server for remote access.
+RBAC was fixed to accommodate running on a server.
+SQLite was used for database basics due to progrSQL not working on device.
+Server runs on Old PC set up as dedicated server. 
+Work a sprint behind due to delays. Adjustment to later sprints to catch up on work whilst still being on track. 
+
+Things to work on for next two weeks:
+Define testing process for future. 
+Add more information on pre-existing solutions (such as why its different from Nmap)
+Implement database features to a greater level (use JSON rather than hardcoded information)
