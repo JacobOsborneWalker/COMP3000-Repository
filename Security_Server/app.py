@@ -1,5 +1,14 @@
-from flask import Flask, render_template, jsonify, request
+## app.py - application entry point
+
+from flask import Flask, render_template
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from config import Config
+from models import db
+from auth import auth_bp
+from routes.requests import requests_bp
+from routes.known_devices import known_devices_bp
+from routes.results import results_bp
 
 app = Flask(
     __name__,
@@ -7,59 +16,23 @@ app = Flask(
     template_folder="templates"
 )
 
-# Allow requests from any origin (needed when accessing via IP)
+app.config.from_object(Config)
+
+db.init_app(app)
+jwt = JWTManager(app)
 CORS(app)
 
-mock_users = [
-    {"username": "admin",     "role": "admin"},
-    {"username": "staff",     "role": "staff"},
-    {"username": "safeguard", "role": "safeguard"}
-]
+# register blueprints
+app.register_blueprint(auth_bp,          url_prefix="/api")
+app.register_blueprint(requests_bp,      url_prefix="/api")
+app.register_blueprint(known_devices_bp, url_prefix="/api")
+app.register_blueprint(results_bp,       url_prefix="/api")
 
-mock_requests = [
-    {"id": "REQ-101", "type": "Quick", "requested_by": "staff",     "status": "pending"},
-    {"id": "REQ-102", "type": "Full",  "requested_by": "safeguard", "status": "approved"}
-]
-
-# Home route
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# Login
-@app.route("/api/login", methods=["POST"])
-def login():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
-    user = next((u for u in mock_users if u["username"] == username), None)
-    if user and password == "admin123":
-        return jsonify({"access_token": "mocktoken123", "role": user["role"]})
-    return jsonify({"error": "Invalid credentials"}), 401
-
-# Get requests
-@app.route("/api/requests", methods=["GET"])
-def get_requests():
-    auth = request.headers.get("Authorisation")
-    if auth != "Bearer mocktoken123":
-        return jsonify({"error": "Unauthorised"}), 401
-    return jsonify(mock_requests)
-
-# Approve scan
-@app.route("/api/approve-scan", methods=["POST"])
-def approve_scan():
-    auth = request.headers.get("Authorisation")
-    if auth != "Bearer mocktoken123":
-        return jsonify({"error": "Unauthorised"}), 401
-    data = request.get_json()
-    req_id = data.get("id")
-    for r in mock_requests:
-        if r["id"] == req_id:
-            r["status"] = "approved"
-            return jsonify({"message": f"request {req_id} approved"})
-    return jsonify({"error": "request not found"}), 404
-
 if __name__ == "__main__":
-    # host="0.0.0.0" makes Flask reachable on your network via YOUR_SERVER_IP:5000
-    app.run(host="10.137.45.9", port=5000, debug=True)
-# im going mental this isnt working ahahhahaha#
+    with app.app_context():
+        db.create_all() 
+    app.run(host="0.0.0.0", port=5000, debug=True)

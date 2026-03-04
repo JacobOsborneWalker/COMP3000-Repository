@@ -1,4 +1,4 @@
-## auth - hangles login and JWT token creation
+## auth - handles login and JWT token creation
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
@@ -8,18 +8,18 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.get_json()
 
-    if not data or "username" not in data:
+    if not data or "username" not in data or "password" not in data:
         return jsonify({"error": "Missing credentials"}), 400
 
     user = User.query.filter_by(username=data["username"]).first()
 
-    if not user:
-        return jsonify({"error": "Invalid user"}), 401
+    if not user or user.password != data["password"]:
+        return jsonify({"error": "Invalid credentials"}), 401
 
     access_token = create_access_token(
-        identity=user.id,
+        identity=str(user.id),
         additional_claims={"role": user.role}
     )
 

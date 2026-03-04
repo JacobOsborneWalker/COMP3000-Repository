@@ -1,0 +1,44 @@
+[
+  {
+    "devices": [
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -45, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "44:55:66:77:88:99", "vendor": "Apple",        "signal": -60, "channel": 11, "time_seen": "auto", "flags": ""},
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -55, "channel": 1,  "time_seen": "auto", "flags": ""}
+    ],
+    "bandwidth": "Low"
+  },
+  {
+    "devices": [
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -50, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown",      "signal": -80, "channel": 6,  "time_seen": "auto", "flags": "Suspicious"},
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -65, "channel": 1,  "time_seen": "auto", "flags": ""}
+    ],
+    "bandwidth": "Medium"
+  },
+  {
+    "devices": [
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -48, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "44:55:66:77:88:99", "vendor": "Apple",        "signal": -72, "channel": 11, "time_seen": "auto", "flags": ""},
+      {"mac": "FE:DC:BA:98:76:54", "vendor": "Unknown",      "signal": -90, "channel": 11, "time_seen": "auto", "flags": "Rogue AP"},
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -58, "channel": 1,  "time_seen": "auto", "flags": ""}
+    ],
+    "bandwidth": "High"
+  },
+  {
+    "devices": [
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -42, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "C4:E9:84:12:34:56", "vendor": "Intel",        "signal": -67, "channel": 3,  "time_seen": "auto", "flags": ""},
+      {"mac": "44:55:66:77:88:99", "vendor": "Apple",        "signal": -75, "channel": 11, "time_seen": "auto", "flags": ""}
+    ],
+    "bandwidth": "Low"
+  },
+  {
+    "devices": [
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -53, "channel": 1,  "time_seen": "auto", "flags": ""},
+      {"mac": "BA:DC:AF:E0:12:34", "vendor": "Unknown",      "signal": -85, "channel": 6,  "time_seen": "auto", "flags": "Suspicious"},
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -47, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown",      "signal": -78, "channel": 11, "time_seen": "auto", "flags": "Suspicious"}
+    ],
+    "bandwidth": "High"
+  }
+]

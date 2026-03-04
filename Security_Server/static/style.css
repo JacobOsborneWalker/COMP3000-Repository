@@ -59,3 +59,17 @@ button.secondary-btn:hover { background:#e2e6ea; }
 #btnLogout:hover { background:var(--danger); color:#fff; }
 #btnAdminQuick { border:1px solid var(--primary); color:var(--primary); background:none; padding:8px 15px; border-radius:6px; }
 #btnAdminQuick:hover { background:var(--primary); color:#fff; }
+
+/* known and unknown device badges */
+.badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge.known   { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.badge.unknown { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+tr.unknown-device { background: #fffbf0 !important; }
+tr.unknown-device:hover { background: #fff3cd !important; }
+
+.add-device-form { margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; max-width: 500px; }
+.add-device-form h4 { margin: 0 0 15px; color: var(--primary); }
+
+button.danger-btn { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+button.danger-btn:hover { background: var(--danger); color: #fff; }

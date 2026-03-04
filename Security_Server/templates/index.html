@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <!-- LOGIN SCREEN -->
+    <!-- login screen  -->
     <div id="loginScreen" class="screen">
         <div id="loginBox">
             <h1>Security Dashboard</h1>
@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <!-- MAIN APP -->
+    <!-- main app-->
     <div id="app" class="screen hidden">
         <header>
             <span id="userInfo"></span>
@@ -29,18 +29,18 @@
             </div>
         </header>
 
-        <!-- DASHBOARD TILES -->
+        <!-- dashboard titles -->
         <div id="tiles" class="tiles"></div>
 
-        <!-- === PAGES === -->
+        <!-- pages -->
 
-        <!-- 1. DASHBOARD PAGE -->
+        <!-- dashboard -->
         <div id="dashboard" class="page">
             <h2>Welcome to the Dashboard</h2>
             <p>Select a tile above to navigate.</p>
         </div>
 
-        <!-- 2. CREATE SCAN PAGE -->
+        <!-- new scan -->
         <div id="createScan" class="page hidden">
             <h2>Create Scan</h2>
             <div class="form-group">
@@ -71,7 +71,7 @@
             <button id="submitScanBtn" class="primary-btn">Submit Scan</button>
         </div>
 
-        <!-- 3. APPROVAL PAGE -->
+        <!-- approval -->
         <div id="approval" class="page hidden">
             <h2>Pending Scan Requests</h2>
             <table id="pendingTable">
@@ -87,7 +87,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Filled dynamically by JS -->
                 </tbody>
             </table>
 
@@ -103,12 +102,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Filled dynamically by JS -->
                 </tbody>
             </table>
         </div>
 
-        <!-- 4. RESULTS PAGE -->
+        <!-- results -->
         <div id="results" class="page hidden">
             <h2>Scan Results</h2>
 
@@ -119,7 +117,7 @@
                 </select>
             </div>
 
-            <!-- Scan Metadata Table -->
+            <!-- scan metadata -->
             <h3>Scan Metadata</h3>
             <table id="scanMetadataTable">
                 <thead>
@@ -136,7 +134,7 @@
                 </tbody>
             </table>
 
-            <!-- Detected Devices Table -->
+            <!-- detected devices -->
             <h3>Detected Devices</h3>
             <table id="devicesTable">
                 <thead>
@@ -147,13 +145,14 @@
                         <th>Channel</th>
                         <th>Time Seen</th>
                         <th>Flags</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                 </tbody>
             </table>
 
-            <!-- Summary Insights Table -->
+            <!-- summary insight -->
             <h3>Summary Insights</h3>
             <table id="summaryTable">
                 <thead>
@@ -168,7 +167,7 @@
                 </tbody>
             </table>
 
-            <!-- Export Buttons -->
+            <!-- export button -->
             <div class="export-buttons">
                 <button id="exportCSV">Export CSV</button>
                 <button id="exportJSON">Export JSON</button>
@@ -176,10 +175,10 @@
             </div>
         </div>
 
-        <!-- ADMIN PAGE -->
+        <!-- admin page -->
         <div id="admin" class="page hidden">
             <h2>Admin Panel</h2>
-            <p>Admin-only actions appear here.</p>
+            <div id="knownDevicesSection"></div>
         </div>
     </div>
 </body>
