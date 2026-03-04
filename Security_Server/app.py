@@ -9,6 +9,7 @@ from auth import auth_bp
 from routes.requests import requests_bp
 from routes.known_devices import known_devices_bp
 from routes.results import results_bp
+from routes.nodes import nodes_bp
 
 app = Flask(
     __name__,
@@ -27,6 +28,7 @@ app.register_blueprint(auth_bp,          url_prefix="/api")
 app.register_blueprint(requests_bp,      url_prefix="/api")
 app.register_blueprint(known_devices_bp, url_prefix="/api")
 app.register_blueprint(results_bp,       url_prefix="/api")
+app.register_blueprint(nodes_bp,          url_prefix="/api")
 
 @app.route("/")
 def home():
@@ -34,5 +36,5 @@ def home():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all() 
+        db.create_all()  
     app.run(host="0.0.0.0", port=5000, debug=True)

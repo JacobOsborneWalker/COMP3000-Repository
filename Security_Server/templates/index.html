@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <!-- login screen  -->
+    <!-- login screen -->
     <div id="loginScreen" class="screen">
         <div id="loginBox">
             <h1>Security Dashboard</h1>
@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <!-- main app-->
+    <!-- main app -->
     <div id="app" class="screen hidden">
         <header>
             <span id="userInfo"></span>
@@ -34,7 +34,7 @@
 
         <!-- pages -->
 
-        <!-- dashboard -->
+        <!-- dashboard  -->
         <div id="dashboard" class="page">
             <h2>Welcome to the Dashboard</h2>
             <p>Select a tile above to navigate.</p>
@@ -55,9 +55,6 @@
                 <label for="scanTypeSelect">Scan Type</label>
                 <select id="scanTypeSelect">
                     <option value="">Select Type</option>
-                    <option value="Quick">Passive Scan</option>
-                    <option value="Active">Active Scan</option>
-                    <option value="Full">Deep Passive Scan</option>
                 </select>
             </div>
             <div class="form-group">
@@ -65,13 +62,58 @@
                 <textarea id="scanNotes" rows="3"></textarea>
             </div>
             <div class="form-group">
-                <label for="scanDateTime">Schedule</label>
-                <input type="datetime-local" id="scanDateTime">
+                <label>Schedule Date &amp; Time <span style="font-weight:normal;color:#6c757d">(optional)</span></label>
+                <div class="schedule-row">
+                    <input type="date" id="scanDate">
+                    <select id="scanHour">
+                        <option value="">Hour</option>
+                        <option value="00">00:00</option>
+                        <option value="01">01:00</option>
+                        <option value="02">02:00</option>
+                        <option value="03">03:00</option>
+                        <option value="04">04:00</option>
+                        <option value="05">05:00</option>
+                        <option value="06">06:00</option>
+                        <option value="07">07:00</option>
+                        <option value="08">08:00</option>
+                        <option value="09">09:00</option>
+                        <option value="10">10:00</option>
+                        <option value="11">11:00</option>
+                        <option value="12">12:00</option>
+                        <option value="13">13:00</option>
+                        <option value="14">14:00</option>
+                        <option value="15">15:00</option>
+                        <option value="16">16:00</option>
+                        <option value="17">17:00</option>
+                        <option value="18">18:00</option>
+                        <option value="19">19:00</option>
+                        <option value="20">20:00</option>
+                        <option value="21">21:00</option>
+                        <option value="22">22:00</option>
+                        <option value="23">23:00</option>
+                    </select>
+                    <select id="scanMinute">
+                        <option value="">Min</option>
+                        <option value="00">00</option>
+                        <option value="05">05</option>
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                        <option value="25">25</option>
+                        <option value="30">30</option>
+                        <option value="35">35</option>
+                        <option value="40">40</option>
+                        <option value="45">45</option>
+                        <option value="50">50</option>
+                        <option value="55">55</option>
+                    </select>
+                </div>
+                <p class="schedule-hint">Leave blank to submit without a scheduled time</p>
             </div>
             <button id="submitScanBtn" class="primary-btn">Submit Scan</button>
         </div>
 
-        <!-- approval -->
+        <!-- approval page -->
         <div id="approval" class="page hidden">
             <h2>Pending Scan Requests</h2>
             <table id="pendingTable">
@@ -106,7 +148,7 @@
             </table>
         </div>
 
-        <!-- results -->
+        <!-- results page -->
         <div id="results" class="page hidden">
             <h2>Scan Results</h2>
 
@@ -172,6 +214,98 @@
                 <button id="exportCSV">Export CSV</button>
                 <button id="exportJSON">Export JSON</button>
                 <button id="exportPDF">Export PDF</button>
+            </div>
+        </div>
+
+
+        <!-- noad health -->
+        <div id="nodes" class="page hidden">
+            <h2>Node Health</h2>
+
+            <div class="section-header">
+                <h3>Registered Nodes</h3>
+                <button id="btnRegisterNode" class="primary-btn hidden">+ Register Node</button>
+            </div>
+            <table id="nodesTable">
+                <thead>
+                    <tr>
+                        <th>Node ID</th>
+                        <th>Location</th>
+                        <th>Network</th>
+                        <th>Status</th>
+                        <th>Last Check-in</th>
+                        <th>Alerts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" class="table-loading">Loading nodes...</td></tr>
+                </tbody>
+            </table>
+
+            <!-- register node -->
+            <div id="registerNodeForm" class="sub-form hidden">
+                <h4>Register New Node</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Location Name</label>
+                        <input type="text" id="nodeLocation" placeholder="e.g. Site 1 - Main Building">
+                    </div>
+                    <div class="form-group">
+                        <label>Network</label>
+                        <select id="nodeNetwork">
+                            <option value="">Select Network</option>
+                            <option value="Network1">Network1</option>
+                            <option value="Network2">Network2</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row-btns">
+                    <button class="primary-btn" onclick="registerNode()">Register</button>
+                    <button class="secondary-btn" onclick="toggleRegisterForm()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- node detail page-->
+            <div id="nodeDetailPanel" class="hidden">
+                <div class="section-header">
+                    <h3>Node Detail — <span id="nodeDetailTitle"></span></h3>
+                    <button class="secondary-btn" onclick="closeNodeDetail()">✕ Close</button>
+                </div>
+
+                <div class="node-detail-grid">
+
+                    <div class="node-detail-card">
+                        <h4>Recent Scans</h4>
+                        <table id="nodeScansTable">
+                            <thead><tr><th>Scan ID</th><th>Type</th><th>Date</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="node-detail-card">
+                        <h4>Scheduled Scans</h4>
+                        <table id="nodeScheduledTable">
+                            <thead><tr><th>Scan ID</th><th>Type</th><th>Scheduled</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="node-detail-card node-detail-card--full">
+                        <h4>Recent Errors</h4>
+                        <table id="nodeErrorsTable">
+                            <thead><tr><th>Message</th><th>Time</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="node-detail-card node-detail-card--full">
+                        <h4>Active Alerts</h4>
+                        <table id="nodeAlertsTable">
+                            <thead><tr><th>Message</th><th>Time</th><th>Action</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 

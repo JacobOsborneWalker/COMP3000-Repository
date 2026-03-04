@@ -1,4 +1,4 @@
-## seed - populates the database with starter data
+## seed.py - populates the database with starter data
 
 from app import app
 from models import db, User, KnownDevice, ScanRequest, ScanResult, DetectedDevice
@@ -7,12 +7,13 @@ from datetime import datetime
 with app.app_context():
     db.create_all()
 
-    # users
+    # users 
     if not User.query.first():
         users = [
-            User(username="admin",     password="admin123", role="admin"),
-            User(username="staff",     password="admin123", role="staff"),
-            User(username="safeguard", password="admin123", role="safeguard")
+            User(username="admin",      password="admin123", role="admin"),
+            User(username="technician", password="admin123", role="technician"),
+            User(username="safeguard",  password="admin123", role="safeguard"),
+            User(username="auditor",    password="admin123", role="auditor")
         ]
         db.session.add_all(users)
         db.session.commit()
@@ -30,16 +31,16 @@ with app.app_context():
         db.session.commit()
         print("Known devices seeded")
 
-    # requests and results
+    # scan requests and results 
     if not ScanRequest.query.first():
-        staff     = User.query.filter_by(username="staff").first()
+        technician = User.query.filter_by(username="technician").first()
         safeguard = User.query.filter_by(username="safeguard").first()
         admin     = User.query.filter_by(username="admin").first()
 
         req1 = ScanRequest(
             network="Network1", scan_type="Passive",
             notes="Routine check", status="approved",
-            requester_id=staff.id, approved_by_id=admin.id,
+            requester_id=technician.id, approved_by_id=admin.id,
             created_at=datetime(2026, 2, 10, 10, 30)
         )
         req2 = ScanRequest(
@@ -51,13 +52,13 @@ with app.app_context():
         req3 = ScanRequest(
             network="Network1", scan_type="Deep Passive",
             notes="", status="pending",
-            requester_id=staff.id,
+            requester_id=technician.id,
             created_at=datetime(2026, 2, 10, 12, 0)
         )
         db.session.add_all([req1, req2, req3])
         db.session.commit()
 
-        # results of approved requests
+        # results
         result1 = ScanResult(
             scan_request_id=req1.id, total_devices=2,
             suspicious=0, rogue_ap=False, bandwidth="Low"
@@ -82,3 +83,25 @@ with app.app_context():
         print("Scan requests and results seeded")
 
     print("Database ready.")
+
+    # nodes
+    from models import Node, NodeAlert, NodeError
+    if not Node.query.first():
+        admin = User.query.filter_by(username="admin").first()
+        nodes = [
+            Node(node_uid="NODE-001", location="Site 1 - Main Building", network="Network1",
+                 status="online",  last_checkin=datetime(2026, 3, 4, 9, 0),  added_by_id=admin.id),
+            Node(node_uid="NODE-002", location="Site 2 - Server Room",   network="Network2",
+                 status="warning", last_checkin=datetime(2026, 3, 4, 8, 45), added_by_id=admin.id),
+            Node(node_uid="NODE-003", location="Site 3 - Remote Office", network="Network1",
+                 status="offline", last_checkin=datetime(2026, 3, 3, 14, 0), added_by_id=admin.id),
+        ]
+        db.session.add_all(nodes)
+        db.session.flush()
+
+        db.session.add(NodeAlert(node_id=nodes[1].id, message="High signal interference detected on channel 6"))
+        db.session.add(NodeAlert(node_id=nodes[2].id, message="Node has not checked in for over 12 hours"))
+        db.session.add(NodeError(node_id=nodes[1].id, message="Scan timeout after 30s — retried successfully"))
+        db.session.add(NodeError(node_id=nodes[2].id, message="Connection refused on port 5000"))
+        db.session.commit()
+        print("Nodes seeded")

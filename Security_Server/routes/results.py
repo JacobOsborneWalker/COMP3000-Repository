@@ -35,7 +35,7 @@ def get_results():
 def get_result_detail(result_id):
     r = ScanResult.query.get_or_404(result_id)
 
-
+    
     known_macs = {d.mac.upper(): d.label for d in KnownDevice.query.all()}
 
     devices = []
@@ -96,7 +96,7 @@ def submit_result():
     )
 
     db.session.add(result)
-    db.session.flush()  #
+    db.session.flush()  
 
     for d in detected:
         time_seen = None

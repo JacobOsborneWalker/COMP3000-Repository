@@ -20,7 +20,7 @@ def _load_fake_results():
         return json.load(f)
 
 
-# generate results 
+# generate results
 def _generate_result(scan_request):
     """Pick a random result template and save it to the DB."""
     pool = _load_fake_results()
@@ -56,9 +56,9 @@ def _generate_result(scan_request):
     return result
 
 
-# create new scan 
+# create new scan
 @requests_bp.route("/requests", methods=["POST"])
-@require_roles(["staff", "admin"])
+@require_roles(["technician", "admin"])
 def create_request():
     data = request.get_json()
     user_id = int(get_jwt_identity())
@@ -69,9 +69,7 @@ def create_request():
             scheduled_at = datetime.fromisoformat(data["scheduled_at"])
         except ValueError:
             return jsonify({"error": "Invalid date format"}), 400
-        
 
-    # new scan type
     new_request = ScanRequest(
         network      = data.get("network", ""),
         scan_type    = data.get("scan_type", ""),
@@ -118,6 +116,9 @@ def approve_request(req_id):
     if scan_request.status != "pending":
         return jsonify({"error": "Request is not pending"}), 400
 
+    if scan_request.requester_id == user_id:
+        return jsonify({"error": "You cannot authorise a request you submitted"}), 403
+
     scan_request.status         = "approved"
     scan_request.approved_by_id = user_id
 
@@ -127,7 +128,7 @@ def approve_request(req_id):
     return jsonify({"message": f"Request {req_id} approved", "result_id": result.id})
 
 
-# decline requests 
+# decline requests
 @requests_bp.route("/requests/<int:req_id>/decline", methods=["POST"])
 @require_roles(["admin", "safeguard"])
 def decline_request(req_id):
@@ -137,8 +138,29 @@ def decline_request(req_id):
     if scan_request.status != "pending":
         return jsonify({"error": "Request is not pending"}), 400
 
+    if scan_request.requester_id == user_id:
+        return jsonify({"error": "You cannot decline a request you submitted"}), 403
+
     scan_request.status         = "declined"
     scan_request.approved_by_id = user_id
     db.session.commit()
 
     return jsonify({"message": f"Request {req_id} declined"})
+
+# cancel requests
+@requests_bp.route("/requests/<int:req_id>/cancel", methods=["POST"])
+@require_roles()
+def cancel_request(req_id):
+    user_id = int(get_jwt_identity())
+    scan_request = ScanRequest.query.get_or_404(req_id)
+
+    if scan_request.requester_id != user_id:
+        return jsonify({"error": "You can only cancel your own requests"}), 403
+
+    if scan_request.status != "pending":
+        return jsonify({"error": "Only pending requests can be cancelled"}), 400
+
+    scan_request.status = "cancelled"
+    db.session.commit()
+
+    return jsonify({"message": f"Request {req_id} cancelled"})

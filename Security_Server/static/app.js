@@ -16,9 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const submitScanBtn = document.getElementById("submitScanBtn");
 
     const rolePages = {
-        admin:     ["createScan", "approval", "results", "nodes", "admin", "dashboard"],
-        safeguard: ["approval", "results", "dashboard"],
-        staff:     ["createScan", "results", "dashboard"]
+        admin:      ["createScan", "approval", "results", "nodes", "admin", "dashboard"],
+        safeguard:  ["approval", "results", "nodes", "dashboard"],
+        technician: ["createScan", "results", "nodes", "dashboard"],
+        auditor:    ["results", "nodes", "dashboard"]
     };
 
     const tileDefs = [
@@ -38,13 +39,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function authHeaders() {
         return {
             "Content-Type": "application/json",
-            "Authorisation": `Bearer ${getToken()}`
+            "Authorization": `Bearer ${getToken()}`
         };
     }
 
     function apiFetch(path, options = {}) {
+        const { headers: _, ...rest } = options;
         return fetch(`${API_URL}${path}`, {
-            ...options,
+            ...rest,
             headers: authHeaders()
         }).then(r => r.json().then(data => ({ status: r.status, data })));
     }
@@ -119,46 +121,84 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
         const page = document.getElementById(id);
         if (page) page.classList.remove("hidden");
-        if (id === "approval") loadApprovalPage();
-        if (id === "results")  loadResultsPage();
-        if (id === "admin")    loadAdminPage();
+        if (id === "approval")   loadApprovalPage();
+        if (id === "results")    loadResultsPage();
+        if (id === "admin")      loadAdminPage();
+        if (id === "createScan") populateScanTypes();
+        if (id === "nodes")      loadNodesPage();
     }
 
-   // load data
+    // load data
     function loadData() {
         loadMockNodes();
     }
 
-  
-    // create scan
+
+    // scan type options
+    function populateScanTypes() {
+        const select = document.getElementById("scanTypeSelect");
+        if (!select) return;
+        select.innerHTML = '<option value="">Select Type</option>';
+
+
+        const allTypes = [
+            { value: "Passive",      label: "Passive Scan" },
+            { value: "Active",       label: "Active Scan" },
+            { value: "Deep Passive", label: "Deep Passive Scan" }
+        ];
+        const techTypes = [
+            { value: "Passive", label: "Passive Scan (Routine)" }
+        ];
+
+        const types = currentUser.role === "technician" ? techTypes : allTypes;
+        types.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t.value;
+            opt.textContent = t.label;
+            select.appendChild(opt);
+        });
+    }
+
+    // create scan 
     function submitScan() {
-        const network     = document.getElementById("networkSelect").value;
-        const scan_type   = document.getElementById("scanTypeSelect").value;
-        const notes       = document.getElementById("scanNotes").value;
-        const scheduled_at = document.getElementById("scanDateTime").value;
+        const network   = document.getElementById("networkSelect").value;
+        const scan_type = document.getElementById("scanTypeSelect").value;
+        const notes     = document.getElementById("scanNotes").value;
+        const scanDate  = document.getElementById("scanDate").value;
+        const scanHour  = document.getElementById("scanHour").value;
+        const scanMin   = document.getElementById("scanMinute").value;
 
         if (!network || !scan_type) {
             alert("Please select a network and scan type.");
             return;
         }
 
+        let scheduled_at = null;
+        if (scanDate && scanHour && scanMin) {
+            scheduled_at = `${scanDate}T${scanHour}:${scanMin}:00`;
+        } else if (scanDate || scanHour || scanMin) {
+            alert("Please fill in the full schedule (date, hour and minute) or leave all blank.");
+            return;
+        }
+
         apiFetch("/requests", {
             method: "POST",
-            body: JSON.stringify({ network, scan_type, notes, scheduled_at: scheduled_at || null })
+            body: JSON.stringify({ network, scan_type, notes, scheduled_at })
         }).then(resp => {
             if (resp.status === 201) {
-                alert("Scan request submitted successfully.");
+                alert(`Scan request submitted successfully.\nYour Scan ID is: #${resp.data.id}`);
                 document.getElementById("networkSelect").value  = "";
                 document.getElementById("scanTypeSelect").value = "";
                 document.getElementById("scanNotes").value      = "";
-                document.getElementById("scanDateTime").value   = "";
+                document.getElementById("scanDate").value       = "";
+                document.getElementById("scanHour").value       = "";
+                document.getElementById("scanMinute").value     = "";
             } else {
                 alert(resp.data.error || "Failed to submit scan request.");
             }
         });
     }
 
-   
     // approval page
     function loadApprovalPage() {
         apiFetch("/requests").then(resp => {
@@ -179,6 +219,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         requests.forEach(r => {
+            const isSelf = r.requested_by === currentUser.name;
+            const canApprove = ["admin", "safeguard"].includes(currentUser.role);
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td>${r.id}</td>
@@ -188,8 +230,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${r.scheduled_at ? r.scheduled_at.replace("T", " ").slice(0,16) : r.created_at.replace("T"," ").slice(0,16)}</td>
                 <td>${r.notes || "—"}</td>
                 <td>
-                    <button onclick="approveScanRequest(${r.id})">Approve</button>
-                    <button onclick="declineScanRequest(${r.id})">Decline</button>
+                    ${isSelf
+                        ? `<button class="cancel-btn" onclick="cancelScanRequest(${r.id})">Cancel</button>
+                           <span class="self-request-note">Awaiting another user to approve</span>`
+                        : canApprove
+                            ? `<button onclick="approveScanRequest(${r.id})">Approve</button>
+                               <button onclick="declineScanRequest(${r.id})">Decline</button>`
+                            : `<span class="self-request-note">Awaiting approval</span>`
+                    }
                 </td>
             `;
             tbody.appendChild(tr);
@@ -242,7 +290,19 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    // result page
+    window.cancelScanRequest = function(id) {
+        if (!confirm(`Cancel your scan request #${id}? This cannot be undone.`)) return;
+        apiFetch(`/requests/${id}/cancel`, { method: "POST" }).then(resp => {
+            if (resp.status === 200) {
+                alert(`Request #${id} cancelled.`);
+                loadApprovalPage();
+            } else {
+                alert(resp.data.error || "Failed to cancel.");
+            }
+        });
+    };
+
+    // results page
     function loadResultsPage() {
         apiFetch("/results").then(resp => {
             if (resp.status !== 200) return;
@@ -254,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const select = document.getElementById("scanSelect");
         select.innerHTML = '<option value="">-- Choose Scan --</option>';
 
-        // clear old listener 
+        // Clear old listener 
         const newSelect = select.cloneNode(true);
         select.parentNode.replaceChild(newSelect, select);
 
@@ -314,12 +374,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${summary.bandwidth}</td>
             </tr>`;
 
-            // exports
+            // export
             window._currentScanData = { metadata, devices, summary };
         });
     }
 
-   // exports 
+    // exports
     document.getElementById("exportCSV").addEventListener("click", () => {
         const d = window._currentScanData;
         if (!d) { alert("Select a scan first"); return; }
@@ -354,6 +414,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("exportPDF").addEventListener("click", () => {
         alert("PDF export not implemented yet.");
     });
+
 
     // admin page
     function loadAdminPage() {
@@ -432,21 +493,206 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    const MOCK_NODES = [
+        {
+            id: 1, node_uid: "NODE-001", location: "Site 1 - Main Building",
+            network: "Network1", status: "online",
+            last_checkin: "2026-03-04T09:00:00", alert_count: 0, alerts: []
+        },
+        {
+            id: 2, node_uid: "NODE-002", location: "Site 2 - Server Room",
+            network: "Network2", status: "warning",
+            last_checkin: "2026-03-04T08:45:00", alert_count: 1,
+            alerts: [{ id: 1, message: "High signal interference detected on channel 6" }]
+        },
+        {
+            id: 3, node_uid: "NODE-003", location: "Site 3 - Remote Office",
+            network: "Network1", status: "offline",
+            last_checkin: "2026-03-03T14:00:00", alert_count: 1,
+            alerts: [{ id: 2, message: "Node has not checked in for over 12 hours" }]
+        }
+    ];
+
+    const MOCK_NODE_DETAILS = {
+        1: {
+            id: 1, node_uid: "NODE-001", location: "Site 1 - Main Building",
+            network: "Network1", status: "online",
+            last_checkin: "2026-03-04T09:00:00", alerts: [],
+            recent_scans: [
+                { id: 1, scan_type: "Passive",      created_at: "2026-02-10T10:30:00" },
+                { id: 3, scan_type: "Deep Passive",  created_at: "2026-02-10T12:00:00" }
+            ],
+            scheduled_scans: [
+                { id: 5, scan_type: "Passive", scheduled_at: "2026-03-05T08:00:00" }
+            ],
+            recent_errors: []
+        },
+        2: {
+            id: 2, node_uid: "NODE-002", location: "Site 2 - Server Room",
+            network: "Network2", status: "warning",
+            last_checkin: "2026-03-04T08:45:00",
+            alerts: [{ id: 1, message: "High signal interference on channel 6", created_at: "2026-03-04T08:45:00" }],
+            recent_scans: [
+                { id: 2, scan_type: "Active", created_at: "2026-02-10T11:00:00" }
+            ],
+            scheduled_scans: [],
+            recent_errors: [
+                { message: "Scan timeout after 30s — retried successfully", created_at: "2026-03-04T08:40:00" }
+            ]
+        },
+        3: {
+            id: 3, node_uid: "NODE-003", location: "Site 3 - Remote Office",
+            network: "Network1", status: "offline",
+            last_checkin: "2026-03-03T14:00:00",
+            alerts: [{ id: 2, message: "Node has not checked in for over 12 hours", created_at: "2026-03-04T07:00:00" }],
+            recent_scans: [],
+            scheduled_scans: [],
+            recent_errors: [
+                { message: "Connection refused on port 5000", created_at: "2026-03-03T14:05:00" },
+                { message: "Network unreachable — retrying in 60s", created_at: "2026-03-03T15:00:00" }
+            ]
+        }
+    };
+
     // node health
-    function loadMockNodes() {
-        const nodeTableBody = document.querySelector("#nodeTable tbody");
-        if (!nodeTableBody) return;
-        nodeTableBody.innerHTML = "";
-        const nodes = [
-            { mac: "AA:BB:CC:11:22:33", name: "Server1", last_seen: "2026-02-01" },
-            { mac: "12:34:56:78:90:AB", name: "Node2",   last_seen: "2026-02-02" }
-        ];
-        nodes.forEach(n => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${n.mac}</td><td>${n.name}</td><td>${n.last_seen}</td>`;
-            nodeTableBody.appendChild(tr);
+    function loadNodesPage() {
+        const btnReg = document.getElementById("btnRegisterNode");
+        if (btnReg) btnReg.classList.toggle("hidden", currentUser.role !== "admin");
+
+        apiFetch("/nodes").then(resp => {
+            const tbody = document.querySelector("#nodesTable tbody");
+            if (!tbody) return;
+            const nodes = (resp.status === 200 && resp.data.length > 0) ? resp.data : MOCK_NODES;
+            tbody.innerHTML = "";
+            nodes.forEach(n => {
+                const tr = document.createElement("tr");
+                tr.style.cursor = "pointer";
+                tr.title = "Click to view detail";
+                const statusClass = {
+                    online: "status-online", offline: "status-offline",
+                    warning: "status-warning", unknown: "status-unknown"
+                }[n.status] || "status-unknown";
+
+                const alertCell = n.alert_count > 0
+                    ? `<span class="badge unknown">⚠ ${n.alert_count} alert${n.alert_count > 1 ? "s" : ""}</span>`
+                    : `<span class="badge known">✓ None</span>`;
+
+                tr.innerHTML = `
+                    <td><strong>${n.node_uid}</strong></td>
+                    <td>${n.location}</td>
+                    <td>${n.network}</td>
+                    <td><span class="status-badge ${statusClass}">${n.status}</span></td>
+                    <td>${n.last_checkin ? n.last_checkin.slice(0,16).replace("T"," ") : "Never"}</td>
+                    <td>${alertCell}</td>
+                `;
+                tr.onclick = () => loadNodeDetail(n.id, n.node_uid, n.location);
+                tbody.appendChild(tr);
+            });
         });
     }
+
+
+    // load node detail
+    function loadNodeDetail(nodeId, uid, location) {
+        const panel = document.getElementById("nodeDetailPanel");
+        document.getElementById("nodeDetailTitle").textContent = `${uid} — ${location}`;
+        panel.classList.remove("hidden");
+        panel.scrollIntoView({ behavior: "smooth" });
+
+        apiFetch(`/nodes/${nodeId}/detail`).then(resp => {
+            const d = (resp.status === 200) ? resp.data : MOCK_NODE_DETAILS[nodeId] || MOCK_NODE_DETAILS[1];
+
+            const scansTbody = document.querySelector("#nodeScansTable tbody");
+            scansTbody.innerHTML = d.recent_scans.length === 0
+                ? "<tr><td colspan='3' class='table-loading'>No scans yet</td></tr>"
+                : d.recent_scans.map(s => `<tr>
+                    <td>#${s.id}</td>
+                    <td>${s.scan_type}</td>
+                    <td>${s.created_at.slice(0,16).replace("T"," ")}</td>
+                </tr>`).join("");
+
+            const schedTbody = document.querySelector("#nodeScheduledTable tbody");
+            schedTbody.innerHTML = d.scheduled_scans.length === 0
+                ? "<tr><td colspan='3' class='table-loading'>No scheduled scans</td></tr>"
+                : d.scheduled_scans.map(s => `<tr>
+                    <td>#${s.id}</td>
+                    <td>${s.scan_type}</td>
+                    <td>${s.scheduled_at.slice(0,16).replace("T"," ")}</td>
+                </tr>`).join("");
+
+            const errorsTbody = document.querySelector("#nodeErrorsTable tbody");
+            errorsTbody.innerHTML = d.recent_errors.length === 0
+                ? "<tr><td colspan='2' class='table-loading'>No errors recorded</td></tr>"
+                : d.recent_errors.map(e => `<tr>
+                    <td>${e.message}</td>
+                    <td>${e.created_at.slice(0,16).replace("T"," ")}</td>
+                </tr>`).join("");
+
+            const alertsTbody = document.querySelector("#nodeAlertsTable tbody");
+            const canResolve = ["admin", "safeguard"].includes(currentUser.role);
+            alertsTbody.innerHTML = d.alerts.length === 0
+                ? "<tr><td colspan='3' class='table-loading'>No active alerts</td></tr>"
+                : d.alerts.map(a => `<tr>
+                    <td>${a.message}</td>
+                    <td>${a.created_at.slice(0,16).replace("T"," ")}</td>
+                    <td>${canResolve
+                        ? `<button onclick="resolveAlert(${a.id}, ${nodeId})">Resolve</button>`
+                        : "—"
+                    }</td>
+                </tr>`).join("");
+        });
+    }
+
+    window.resolveAlert = function(alertId, nodeId) {
+        apiFetch(`/nodes/alerts/${alertId}/resolve`, { method: "POST" }).then(resp => {
+            if (resp.status === 200) {
+                const title = document.getElementById("nodeDetailTitle").textContent;
+                const uid = title.split(" — ")[0];
+                loadNodesPage();
+                apiFetch(`/nodes/${nodeId}/detail`).then(r => {
+                    if (r.status === 200) {
+                        const loc = r.data.location;
+                        loadNodeDetail(nodeId, uid, loc);
+                    }
+                });
+            }
+        });
+    };
+
+    function closeNodeDetail() {
+        document.getElementById("nodeDetailPanel").classList.add("hidden");
+    }
+
+    function toggleRegisterForm() {
+        const form = document.getElementById("registerNodeForm");
+        form.classList.toggle("hidden");
+    }
+
+    document.getElementById("btnRegisterNode") &&
+    document.getElementById("btnRegisterNode").addEventListener("click", toggleRegisterForm);
+
+    window.registerNode = function() {
+        const location = document.getElementById("nodeLocation").value.trim();
+        const network  = document.getElementById("nodeNetwork").value;
+        if (!location || !network) { alert("Please fill in location and network."); return; }
+
+        apiFetch("/nodes", {
+            method: "POST",
+            body: JSON.stringify({ location, network })
+        }).then(resp => {
+            if (resp.status === 201) {
+                alert(`Node registered successfully. Node ID: ${resp.data.node_uid}`);
+                document.getElementById("nodeLocation").value = "";
+                document.getElementById("nodeNetwork").value  = "";
+                document.getElementById("registerNodeForm").classList.add("hidden");
+                loadNodesPage();
+            } else {
+                alert(resp.data.error || "Failed to register node.");
+            }
+        });
+    };
+
+    function loadMockNodes() { /* replaced */ }
 
     loadData();
 });

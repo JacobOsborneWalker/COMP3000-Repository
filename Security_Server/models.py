@@ -10,10 +10,9 @@ class User(db.Model):
 
     id       = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)  # plain text for now — swap for bcrypt later
-    role     = db.Column(db.String(20), nullable=False)   # admin | safeguard | staff
+    password = db.Column(db.String(255), nullable=False)  
+    role     = db.Column(db.String(20), nullable=False)   
 
-    # Only link back via requester_id to avoid ambiguity
     scan_requests = db.relationship(
         "ScanRequest",
         foreign_keys="ScanRequest.requester_id",
@@ -26,16 +25,15 @@ class ScanRequest(db.Model):
 
     id             = db.Column(db.Integer, primary_key=True)
     network        = db.Column(db.String(100), nullable=False)
-    scan_type      = db.Column(db.String(50),  nullable=False)  # Passive | Active | Deep Passive
+    scan_type      = db.Column(db.String(50),  nullable=False)  
     notes          = db.Column(db.Text)
     scheduled_at   = db.Column(db.DateTime)
-    status         = db.Column(db.String(20), default="pending")  # pending | approved | declined
+    status         = db.Column(db.String(20), default="pending")  
     created_at     = db.Column(db.DateTime,   default=datetime.utcnow)
 
     requester_id   = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     approved_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
-    # foreign_keys as strings avoids the column-not-yet-assigned issue
     requester = db.relationship(
         "User",
         foreign_keys="ScanRequest.requester_id",
@@ -56,7 +54,7 @@ class KnownDevice(db.Model):
     __tablename__ = "known_devices"
 
     id          = db.Column(db.Integer, primary_key=True)
-    mac         = db.Column(db.String(17), unique=True, nullable=False)  # AA:BB:CC:11:22:33
+    mac         = db.Column(db.String(17), unique=True, nullable=False) 
     label       = db.Column(db.String(100), nullable=False)
     added_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     added_at    = db.Column(db.DateTime, default=datetime.utcnow)
@@ -92,3 +90,43 @@ class DetectedDevice(db.Model):
     flags          = db.Column(db.String(100), default="")
 
     scan_result = db.relationship("ScanResult", back_populates="devices")
+
+
+class Node(db.Model):
+    __tablename__ = "nodes"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    node_uid     = db.Column(db.String(20), unique=True, nullable=False)  
+    location     = db.Column(db.String(100), nullable=False)              
+    network      = db.Column(db.String(100))                              
+    status       = db.Column(db.String(20), default="unknown")         
+    last_checkin = db.Column(db.DateTime, nullable=True)
+    added_by_id  = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    added_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+    added_by = db.relationship("User", foreign_keys="Node.added_by_id")
+    alerts   = db.relationship("NodeAlert", back_populates="node", order_by="NodeAlert.created_at.desc()")
+    errors   = db.relationship("NodeError", back_populates="node", order_by="NodeError.created_at.desc()")
+
+
+class NodeAlert(db.Model):
+    __tablename__ = "node_alerts"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    node_id    = db.Column(db.Integer, db.ForeignKey("nodes.id"), nullable=False)
+    message    = db.Column(db.String(200), nullable=False)
+    resolved   = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    node = db.relationship("Node", back_populates="alerts")
+
+
+class NodeError(db.Model):
+    __tablename__ = "node_errors"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    node_id    = db.Column(db.Integer, db.ForeignKey("nodes.id"), nullable=False)
+    message    = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    node = db.relationship("Node", back_populates="errors")
