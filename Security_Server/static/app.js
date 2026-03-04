@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     let currentUser = null;
 
-    const API_URL = "http://127.0.0.1:5000/api";
+    const API_URL = "http://10.137.45.9:5000/api";
 
     const loginBtn = document.getElementById("loginBtn");
     const loginUser = document.getElementById("loginUser");
@@ -56,6 +56,11 @@ document.addEventListener("DOMContentLoaded", () => {
                   loginError.textContent=resp.data.error || "Login failed";
                   loginError.classList.remove("hidden");
               }
+          })
+          .catch(err=>{
+              loginError.textContent="Cannot reach server — check IP or that Flask is running";
+              loginError.classList.remove("hidden");
+              console.error("Login error:", err);
           });
     }
 
