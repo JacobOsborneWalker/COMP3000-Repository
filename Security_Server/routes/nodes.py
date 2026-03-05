@@ -33,7 +33,7 @@ def register_node():
     # generate node id
     last = Node.query.order_by(Node.id.desc()).first()
     next_num = (last.id + 1) if last else 1
-    node_uid = f"NODE-{next_num:03d}"
+    node_uid = f"NODE{next_num:03d}"
 
     node = Node(
         node_uid    = node_uid,
@@ -64,19 +64,19 @@ def remove_node(node_id):
 def get_node_detail(node_id):
     node = Node.query.get_or_404(node_id)
 
-    # Recent scans on this node's network (approved, most recent 5)
+    # recent scans of node network
     recent_scans = ScanRequest.query.filter_by(
         network=node.network, status="approved"
     ).order_by(ScanRequest.created_at.desc()).limit(5).all()
 
-    # Scheduled scans on this network (pending with a scheduled_at)
+    # scheduled scan 
     scheduled_scans = ScanRequest.query.filter_by(
         network=node.network, status="pending"
     ).filter(ScanRequest.scheduled_at != None).order_by(
         ScanRequest.scheduled_at.asc()
     ).all()
 
-    # Recent errors (last 5)
+    # recent errors
     recent_errors = node.errors[:5]
 
     return jsonify({
@@ -108,7 +108,7 @@ def get_node_detail(node_id):
     })
 
 
-# --- Pi check-in endpoint (called by the Pi itself to report status) ---
+# pi check in endpoint
 @nodes_bp.route("/nodes/<string:node_uid>/checkin", methods=["POST"])
 def node_checkin(node_uid):
     node = Node.query.filter_by(node_uid=node_uid).first_or_404()
@@ -117,12 +117,12 @@ def node_checkin(node_uid):
     node.status      = data.get("status", "online")
     node.last_checkin = datetime.utcnow()
 
-    # If Pi reports an error, log it
+    # report error
     if data.get("error"):
         err = NodeError(node_id=node.id, message=data["error"])
         db.session.add(err)
 
-    # If Pi reports an alert, log it
+    # report alert
     if data.get("alert"):
         alert = NodeAlert(node_id=node.id, message=data["alert"])
         db.session.add(alert)
@@ -131,7 +131,7 @@ def node_checkin(node_uid):
     return jsonify({"message": "Check-in received"})
 
 
-# --- Resolve an alert (admin/safeguard) ---
+# resolve alert
 @nodes_bp.route("/nodes/alerts/<int:alert_id>/resolve", methods=["POST"])
 @require_roles(["admin", "safeguard"])
 def resolve_alert(alert_id):

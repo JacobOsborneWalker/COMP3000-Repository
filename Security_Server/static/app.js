@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     let currentUser = null;
 
-    const API_URL = "http://10.137.45.9:5000/api";
+    const API_URL = "/api"; 
 
     const loginBtn     = document.getElementById("loginBtn");
     const loginUser    = document.getElementById("loginUser");
@@ -17,8 +17,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rolePages = {
         admin:      ["createScan", "approval", "results", "nodes", "admin", "dashboard"],
+
         safeguard:  ["approval", "results", "nodes", "dashboard"],
+
         technician: ["createScan", "results", "nodes", "dashboard"],
+
         auditor:    ["results", "nodes", "dashboard"]
     };
 
@@ -78,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         })
         .catch(() => {
-            loginError.textContent = "Cannot reach server — check IP or that Flask is running";
+            loginError.textContent = "Cannot reach server. Check IP or that Flask is running.";
             loginError.classList.remove("hidden");
         });
     }
@@ -93,9 +96,32 @@ document.addEventListener("DOMContentLoaded", () => {
         buildTilesForRole(role);
         showPage("dashboard");
         loadData();
+        startKeepalive();
+    }
+
+    // keep alive
+    let keepaliveInterval = null;
+
+    function startKeepalive() {
+
+        keepaliveInterval = setInterval(() => {
+            fetch(`${API_URL}/ping`)
+                .then(r => r.json())
+                .catch(() => {}); 
+        }, 240000);
+        console.log("Keepalive started - pinging every 4 minutes");
+    }
+
+    function stopKeepalive() {
+        if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+            console.log("Keepalive stopped");
+        }
     }
 
     function logout() {
+        stopKeepalive();
         localStorage.removeItem("authToken");
         localStorage.removeItem("authUser");
         currentUser = null;
@@ -133,13 +159,11 @@ document.addEventListener("DOMContentLoaded", () => {
         loadMockNodes();
     }
 
-
-    // scan type options
+    // scan types
     function populateScanTypes() {
         const select = document.getElementById("scanTypeSelect");
         if (!select) return;
         select.innerHTML = '<option value="">Select Type</option>';
-
 
         const allTypes = [
             { value: "Passive",      label: "Passive Scan" },
@@ -159,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // create scan 
+    // create scan
     function submitScan() {
         const network   = document.getElementById("networkSelect").value;
         const scan_type = document.getElementById("scanTypeSelect").value;
@@ -228,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${r.network}</td>
                 <td>${r.scan_type}</td>
                 <td>${r.scheduled_at ? r.scheduled_at.replace("T", " ").slice(0,16) : r.created_at.replace("T"," ").slice(0,16)}</td>
-                <td>${r.notes || "—"}</td>
+                <td>${r.notes || "N/A"}</td>
                 <td>
                     ${isSelf
                         ? `<button class="cancel-btn" onclick="cancelScanRequest(${r.id})">Cancel</button>
@@ -259,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${r.status.charAt(0).toUpperCase() + r.status.slice(1)}
                 </td>
                 <td>${r.requested_by}</td>
-                <td>${r.approved_by || "—"}</td>
+                <td>${r.approved_by || "N/A"}</td>
                 <td>${r.network} | ${r.scan_type}</td>
             `;
             tbody.appendChild(tr);
@@ -302,6 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    
     // results page
     function loadResultsPage() {
         apiFetch("/results").then(resp => {
@@ -314,7 +339,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const select = document.getElementById("scanSelect");
         select.innerHTML = '<option value="">-- Choose Scan --</option>';
 
-        // Clear old listener 
         const newSelect = select.cloneNode(true);
         select.parentNode.replaceChild(newSelect, select);
 
@@ -335,17 +359,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (resp.status !== 200) return;
             const { metadata, devices, summary } = resp.data;
 
-            // metadata
             document.querySelector("#scanMetadataTable tbody").innerHTML = `<tr>
                 <td>#${metadata.id}</td>
                 <td>${metadata.requested_by}</td>
-                <td>${metadata.approved_by || "—"}</td>
+                <td>${metadata.approved_by || "N/A"}</td>
                 <td>${metadata.network}</td>
                 <td>${metadata.scan_type}</td>
                 <td>${metadata.created_at.slice(0,16).replace("T"," ")}</td>
             </tr>`;
 
-            // devices
             const devicesBody = document.querySelector("#devicesTable tbody");
             devicesBody.innerHTML = "";
             devices.forEach(d => {
@@ -356,17 +378,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${d.vendor}</td>
                     <td>${d.signal}</td>
                     <td>${d.channel}</td>
-                    <td>${d.time_seen ? d.time_seen.slice(0,16).replace("T"," ") : "—"}</td>
-                    <td>${d.flags || "—"}</td>
+                    <td>${d.time_seen ? d.time_seen.slice(0,16).replace("T"," ") : "N/A"}</td>
+                    <td>${d.flags || "N/A"}</td>
                     <td>${d.known
-                        ? `<span class="badge known">✓ Known — ${d.label}</span>`
+                        ? `<span class="badge known">✓ Known: ${d.label}</span>`
                         : `<span class="badge unknown">⚠ Unknown Device</span>`
                     }</td>
                 `;
                 devicesBody.appendChild(tr);
             });
 
-            // summary
             document.querySelector("#summaryTable tbody").innerHTML = `<tr>
                 <td>${summary.total_devices}</td>
                 <td>${summary.suspicious}</td>
@@ -374,7 +395,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${summary.bandwidth}</td>
             </tr>`;
 
-            // export
             window._currentScanData = { metadata, devices, summary };
         });
     }
@@ -414,7 +434,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("exportPDF").addEventListener("click", () => {
         alert("PDF export not implemented yet.");
     });
-
 
     // admin page
     function loadAdminPage() {
@@ -537,7 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ],
             scheduled_scans: [],
             recent_errors: [
-                { message: "Scan timeout after 30s — retried successfully", created_at: "2026-03-04T08:40:00" }
+                { message: "Scan timeout after 30s, retried successfully", created_at: "2026-03-04T08:40:00" }
             ]
         },
         3: {
@@ -549,12 +568,12 @@ document.addEventListener("DOMContentLoaded", () => {
             scheduled_scans: [],
             recent_errors: [
                 { message: "Connection refused on port 5000", created_at: "2026-03-03T14:05:00" },
-                { message: "Network unreachable — retrying in 60s", created_at: "2026-03-03T15:00:00" }
+                { message: "Network unreachable, retrying in 60s", created_at: "2026-03-03T15:00:00" }
             ]
         }
     };
 
-    // node health
+   // node health
     function loadNodesPage() {
         const btnReg = document.getElementById("btnRegisterNode");
         if (btnReg) btnReg.classList.toggle("hidden", currentUser.role !== "admin");
@@ -591,11 +610,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-    // load node detail
     function loadNodeDetail(nodeId, uid, location) {
         const panel = document.getElementById("nodeDetailPanel");
-        document.getElementById("nodeDetailTitle").textContent = `${uid} — ${location}`;
+        document.getElementById("nodeDetailTitle").textContent = `${uid} - ${location}`;
         panel.classList.remove("hidden");
         panel.scrollIntoView({ behavior: "smooth" });
 
@@ -637,7 +654,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${a.created_at.slice(0,16).replace("T"," ")}</td>
                     <td>${canResolve
                         ? `<button onclick="resolveAlert(${a.id}, ${nodeId})">Resolve</button>`
-                        : "—"
+                        : "N/A"
                     }</td>
                 </tr>`).join("");
         });
@@ -647,7 +664,7 @@ document.addEventListener("DOMContentLoaded", () => {
         apiFetch(`/nodes/alerts/${alertId}/resolve`, { method: "POST" }).then(resp => {
             if (resp.status === 200) {
                 const title = document.getElementById("nodeDetailTitle").textContent;
-                const uid = title.split(" — ")[0];
+                const uid = title.split(" - ")[0];
                 loadNodesPage();
                 apiFetch(`/nodes/${nodeId}/detail`).then(r => {
                     if (r.status === 200) {
@@ -692,7 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    function loadMockNodes() { /* replaced */ }
+    function loadMockNodes() { /* replaced by loadNodesPage() */ }
 
     loadData();
 });
