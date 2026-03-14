@@ -22,7 +22,6 @@ def _load_fake_results():
 
 # generate results
 def _generate_result(scan_request):
-    """Pick a random result template and save it to the DB."""
     pool = _load_fake_results()
     template = random.choice(pool)
     now = datetime.utcnow()
@@ -99,8 +98,8 @@ def get_requests():
             "scheduled_at": r.scheduled_at.isoformat() if r.scheduled_at else None,
             "created_at":   r.created_at.isoformat(),
             "requested_by": r.requester.username,
-            "approved_by":  r.approver.username if r.approver else None,
-            "result_id":    r.result.id if r.result else None
+            "approved_by":  r.approved_by.username if r.approved_by else None,
+            "result_id":    r.results[0].id if r.results else None
         }
         for r in scan_requests
     ])
@@ -114,10 +113,10 @@ def approve_request(req_id):
     scan_request = ScanRequest.query.get_or_404(req_id)
 
     if scan_request.status != "pending":
-        return jsonify({"error": "Request is not pending"}), 400
+        return jsonify({"error": "request is not pending"}), 400
 
     if scan_request.requester_id == user_id:
-        return jsonify({"error": "You cannot authorise a request you submitted"}), 403
+        return jsonify({"error": "you cannot authorise this request"}), 403
 
     scan_request.status         = "approved"
     scan_request.approved_by_id = user_id
@@ -136,10 +135,10 @@ def decline_request(req_id):
     scan_request = ScanRequest.query.get_or_404(req_id)
 
     if scan_request.status != "pending":
-        return jsonify({"error": "Request is not pending"}), 400
+        return jsonify({"error": "request is not pending"}), 400
 
     if scan_request.requester_id == user_id:
-        return jsonify({"error": "You cannot decline a request you submitted"}), 403
+        return jsonify({"error": "You cannot decline this request"}), 403
 
     scan_request.status         = "declined"
     scan_request.approved_by_id = user_id
@@ -155,10 +154,10 @@ def cancel_request(req_id):
     scan_request = ScanRequest.query.get_or_404(req_id)
 
     if scan_request.requester_id != user_id:
-        return jsonify({"error": "You can only cancel your own requests"}), 403
+        return jsonify({"error": "you can only cancel your own requests"}), 403
 
     if scan_request.status != "pending":
-        return jsonify({"error": "Only pending requests can be cancelled"}), 400
+        return jsonify({"error": "only pending requests can be cancelled"}), 400
 
     scan_request.status = "cancelled"
     db.session.commit()

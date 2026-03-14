@@ -19,7 +19,7 @@ def get_results():
             "network":         r.scan_request.network,
             "scan_type":       r.scan_request.scan_type,
             "requested_by":    r.scan_request.requester.username,
-            "approved_by":     r.scan_request.approver.username if r.scan_request.approver else None,
+            "approved_by":     r.scan_request.approved_by.username if r.scan_request.approved_by else None,
             "total_devices":   r.total_devices,
             "suspicious":      r.suspicious,
             "rogue_ap":        r.rogue_ap,
@@ -58,7 +58,7 @@ def get_result_detail(result_id):
             "network":      r.scan_request.network,
             "scan_type":    r.scan_request.scan_type,
             "requested_by": r.scan_request.requester.username,
-            "approved_by":  r.scan_request.approver.username if r.scan_request.approver else None,
+            "approved_by":  r.scan_request.approved_by.username if r.scan_request.approved_by else None,
             "created_at":   r.created_at.isoformat()
         },
         "devices": devices,
@@ -74,10 +74,6 @@ def get_result_detail(result_id):
 @results_bp.route("/results", methods=["POST"])
 @require_roles(["admin"])
 def submit_result():
-    """
-    Called when a scan completes to store its results.
-    Expects: { scan_request_id, bandwidth, devices: [{mac, vendor, signal, channel, time_seen, flags}] }
-    """
     data = request.get_json()
 
     scan_request = ScanRequest.query.get_or_404(data["scan_request_id"])
