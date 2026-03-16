@@ -1,0 +1,20 @@
+[
+  {
+    "node_uid": "NODE-001",
+    "location": "Main Building",
+    "network":  "192.168.1.0/24",
+    "status":   "online"
+  },
+  {
+    "node_uid": "NODE-002",
+    "location": "Sports Hall",
+    "network":  "192.168.2.0/24",
+    "status":   "warning"
+  },
+  {
+    "node_uid": "NODE-003",
+    "location": "Annex Block",
+    "network":  "192.168.3.0/24",
+    "status":   "offline"
+  }
+]

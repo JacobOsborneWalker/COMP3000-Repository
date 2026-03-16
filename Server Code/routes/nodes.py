@@ -64,27 +64,34 @@ def remove_node(node_id):
 def get_node_detail(node_id):
     node = Node.query.get_or_404(node_id)
 
-    # recent scans of node network
-    recent_scans = ScanRequest.query.filter_by(
-        network=node.network, status="approved"
-    ).order_by(ScanRequest.created_at.desc()).limit(5).all()
+    node_network = node.network  
 
-    # scheduled scan 
-    scheduled_scans = ScanRequest.query.filter_by(
-        network=node.network, status="pending"
-    ).filter(ScanRequest.scheduled_at != None).order_by(
-        ScanRequest.scheduled_at.asc()
-    ).all()
+    approved_reqs = (
+        ScanRequest.query
+        .filter_by(status="approved")
+        .order_by(ScanRequest.created_at.desc())
+        .all()
+    )
+    recent_scans = [r for r in approved_reqs if r.network == node_network][:5]
 
-    # recent errors
+    pending_reqs = (
+        ScanRequest.query
+        .filter_by(status="pending")
+        .filter(ScanRequest.scheduled_at != None)
+        .order_by(ScanRequest.scheduled_at.asc())
+        .all()
+    )
+    scheduled_scans = [r for r in pending_reqs if r.network == node_network]
+
+    # recent errors 
     recent_errors = node.errors[:5]
 
     return jsonify({
-        "id":          node.id,
-        "node_uid":    node.node_uid,
-        "location":    node.location,
-        "network":     node.network,
-        "status":      node.status,
+        "id":           node.id,
+        "node_uid":     node.node_uid,
+        "location":     node.location,
+        "network":      node.network,
+        "status":       node.status,
         "last_checkin": node.last_checkin.isoformat() if node.last_checkin else None,
         "alerts": [
             {"id": a.id, "message": a.message, "resolved": a.resolved,
@@ -114,15 +121,13 @@ def node_checkin(node_uid):
     node = Node.query.filter_by(node_uid=node_uid).first_or_404()
     data = request.get_json() or {}
 
-    node.status      = data.get("status", "online")
+    node.status       = data.get("status", "online")
     node.last_checkin = datetime.utcnow()
 
-    # report error
     if data.get("error"):
         err = NodeError(node_id=node.id, message=data["error"])
         db.session.add(err)
 
-    # report alert
     if data.get("alert"):
         alert = NodeAlert(node_id=node.id, message=data["alert"])
         db.session.add(alert)

@@ -12,7 +12,7 @@ from datetime import datetime
 requests_bp = Blueprint("requests", __name__)
 
 # current results stand in for Pi
-FAKE_RESULTS_PATH = os.path.join(os.path.dirname(__file__), "..", "fake_results.json")
+FAKE_RESULTS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Node Code", "fake_results.json")
 
 
 def _load_fake_results():
@@ -43,13 +43,13 @@ def _generate_result(scan_request):
     for d in template["devices"]:
         device = DetectedDevice(
             scan_result_id = result.id,
-            mac            = d["mac"].upper(),
-            vendor         = d["vendor"],
             signal         = d["signal"],
-            channel        = d["channel"],
+            channel        = str(d["channel"]),
             time_seen      = now,
             flags          = d.get("flags", "")
         )
+        device.mac    = d["mac"].upper()
+        device.vendor = d["vendor"]
         db.session.add(device)
 
     return result
@@ -70,13 +70,13 @@ def create_request():
             return jsonify({"error": "Invalid date format"}), 400
 
     new_request = ScanRequest(
-        network      = data.get("network", ""),
         scan_type    = data.get("scan_type", ""),
-        notes        = data.get("notes", ""),
         scheduled_at = scheduled_at,
         requester_id = user_id,
         status       = "pending"
     )
+    new_request.network = data.get("network", "")
+    new_request.notes   = data.get("notes", "") or None
     db.session.add(new_request)
     db.session.commit()
 

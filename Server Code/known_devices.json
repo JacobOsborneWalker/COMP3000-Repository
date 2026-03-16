@@ -1,0 +1,17 @@
+[
+  {
+    "mac":   "AA:BB:CC:DD:EE:01",
+    "label": "Admin Laptop",
+    "added_by": "Peter"
+  },
+  {
+    "mac":   "AA:BB:CC:DD:EE:02",
+    "label": "Staff Room Switch",
+    "added_by": "Peter"
+  },
+  {
+    "mac":   "AA:BB:CC:DD:EE:03",
+    "label": "Library AP",
+    "added_by": "Peter"
+  }
+]

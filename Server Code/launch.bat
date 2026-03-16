@@ -3,7 +3,7 @@ title dashboard launcher
 
 
 echo [1/2] starting flask server
-start "Flask Server" cmd /k "cd /d C:\Users\Server\Documents\GitHub\COMP3000-Repository\Security_Server && python app.py"
+start "Flask Server" cmd /k "cd /d C:\Users\Server\Documents\GitHub\COMP3000-Repository\Server Code && python app.py"
 
 echo     waiting for flask to start
 timeout /t 4 /nobreak > nul

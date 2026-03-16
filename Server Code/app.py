@@ -14,6 +14,7 @@ from routes.requests import requests_bp
 from routes.known_devices import known_devices_bp
 from routes.results import results_bp
 from routes.nodes import nodes_bp
+from retention import start_retention_scheduler
 
 
 # create app
@@ -25,7 +26,7 @@ app = Flask(
 
 app.config.from_object(Config)
 
-# proxy fit
+# proxy fix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # extensions
@@ -41,18 +42,18 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# security header
+# security headers
 Talisman(app, **app.config["TALISMAN_CONFIG"])
 
-# register blueprint
+# register blueprints
 app.register_blueprint(auth_bp,          url_prefix="/api")
 app.register_blueprint(requests_bp,      url_prefix="/api")
 app.register_blueprint(known_devices_bp, url_prefix="/api")
 app.register_blueprint(results_bp,       url_prefix="/api")
 app.register_blueprint(nodes_bp,         url_prefix="/api")
 
-
 limiter.limit("5 per minute")(auth_bp)
+
 
 # routes
 @app.route("/")
@@ -63,8 +64,13 @@ def home():
 def ping():
     return jsonify({"status": "ok"})
 
+
 # entry point
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+
+    # start retention purge
+    start_retention_scheduler(app)
+
     app.run(host="0.0.0.0", port=5000, debug=False)
