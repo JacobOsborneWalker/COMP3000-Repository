@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         auditor:    ["results", "nodes", "dashboard"]
     };
 
+
     // icons and pages
     const tileDefs = [
         { title: "Create Scan",      icon: "wifi_tethering",      page: "createScan" },
@@ -37,8 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (submitScanBtn) submitScanBtn.addEventListener("click", submitScan);
 
 
-    // dom helper
-
+     // dom helper
     function el(tag, className, text) {
         const e = document.createElement(tag);
         if (className) e.className = className;
@@ -78,6 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
         b.onclick = onClick;
         return b;
     }
+
+    // format a datetime string for display
     function fmtDate(str) {
         if (!str) return "N/A";
         return str.slice(0, 16).replace("T", " ");
@@ -129,12 +131,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(() => showLoginError("Cannot reach server. is Flask running?"));
     }
 
-    // login erro
     function showLoginError(msg) {
         loginError.textContent = msg;
         loginError.classList.remove("hidden");
     }
 
+    // login erro
     function setupSession(name, role) {
         currentUser = { name, role };
         userInfo.textContent = `${name} (${role})`;
@@ -162,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // keep alive
+    // keepalive
     let keepaliveInterval = null;
 
     function startKeepalive() {
@@ -189,7 +191,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // show page
     function showPage(id) {
         document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
         const page = document.getElementById(id);
@@ -203,13 +204,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-
-    // create scan
+    // create scan page
     function setupCreateScanPage() {
         const select = document.getElementById("scanTypeSelect");
         if (!select) return;
 
         select.innerHTML = '<option value="">Select Type</option>';
+        
+        // descriptions
+        const scanDescriptions = {
+            "Passive":      "Listens passively for broadcast frames. No packets are sent. Suitable for routine monitoring.",
+            "Active":       "Sends probe requests to elicit responses from nearby devices. More thorough but more detectable. Requires justification and password confirmation.",
+            "Deep Passive": "Extended passive capture with behavioural analysis — probe patterns, beacon anomalies, signal variance, deauth volume, and client association mapping. Runs for a longer window."
+        };
 
         const allTypes = [
             { value: "Passive",      label: "Passive Scan" },
@@ -227,14 +234,27 @@ document.addEventListener("DOMContentLoaded", () => {
             select.appendChild(opt);
         });
 
+
+        let descBox = document.getElementById("scanTypeDesc");
+        if (!descBox) {
+            descBox = document.createElement("p");
+            descBox.id = "scanTypeDesc";
+            descBox.className = "schedule-hint";
+            select.parentNode.appendChild(descBox);
+        }
+
         const notesLabel = document.querySelector("label[for='scanNotes']");
         select.onchange = function() {
+            descBox.textContent = scanDescriptions[this.value] || "";
             if (!notesLabel) return;
-            notesLabel.textContent = this.value === "Active" ? "Justification *" : "Notes";
+            if (this.value === "Active") {
+                notesLabel.innerHTML = 'Justification <span style="color:var(--danger)">* required for Active scans</span>';
+            } else {
+                notesLabel.textContent = "Notes";
+            }
         };
     }
 
-     // submit scan
     function submitScan() {
         const network   = document.getElementById("networkSelect").value;
         const scan_type = document.getElementById("scanTypeSelect").value;
@@ -254,7 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // requires full date and time
         let scheduled_at = null;
         if (scanDate && scanHour && scanMin) {
             scheduled_at = `${scanDate}T${scanHour}:${scanMin}:00`;
@@ -263,14 +282,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // click submit
         const doSubmit = (password) => {
             apiFetch("/requests", {
                 method: "POST",
                 body: JSON.stringify({ network, scan_type, notes, scheduled_at, password })
             }).then(resp => {
                 if (resp.status === 201) {
-                    alert(`Scan submitted. your ID is #${resp.data.id}`);
+                    alert(`Scan submitted — your ID is #${resp.data.id}`);
                     clearScanForm();
                 } else {
                     alert(resp.data.error || "Failed to submit scan.");
@@ -278,7 +296,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         };
 
-        // active scan confirmation
         if (scan_type === "Active") {
             showPasswordModal(
                 "Active Scan - Password Confirmation",
@@ -290,17 +307,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // clear scan form
     function clearScanForm() {
         ["networkSelect", "scanTypeSelect", "scanNotes", "scanDate", "scanHour", "scanMinute"]
             .forEach(id => { document.getElementById(id).value = ""; });
+        const descBox = document.getElementById("scanTypeDesc");
+        if (descBox) descBox.textContent = "";
         const notesLabel = document.querySelector("label[for='scanNotes']");
         if (notesLabel) notesLabel.textContent = "Notes";
     }
 
 
 
-    // approval
+    // approval page
     function loadApprovalPage() {
         apiFetch("/requests").then(resp => {
             if (resp.status !== 200) return;
@@ -309,7 +327,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // pending table
     function renderPendingTable(requests) {
         const tbody = clearTable("#pendingTable tbody");
         if (!tbody) return;
@@ -329,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (isSelf) {
                 actionCell.appendChild(btn("Cancel", "cancel-btn", () => cancelScanRequest(r.id)));
-                actionCell.appendChild(el("span", "self-request-note", " Awaiting anotherr user to approve"));
+                actionCell.appendChild(el("span", "self-request-note", " Awaiting another user to approve"));
             } else if (canApprove) {
                 actionCell.appendChild(btn("Approve", "", () => approveScanRequest(r.id, r.scan_type)));
                 actionCell.appendChild(btn("Decline", "", () => declineScanRequest(r.id)));
@@ -339,7 +356,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // history table
     function renderHistoryTable(requests) {
         const tbody = clearTable("#historyTable tbody");
         if (!tbody) return;
@@ -364,7 +380,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // approve scan request
     function approveScanRequest(id, scanType) {
         const doApprove = (password) => {
             apiFetch(`/requests/${id}/approve`, {
@@ -380,8 +395,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         };
 
-
-        // passwrd required again
         if (scanType === "Active") {
             showPasswordModal(
                 "Approve Active Scan - Password Confirmation",
@@ -394,7 +407,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // decline scan request
     function declineScanRequest(id) {
         if (!confirm(`Decline request #${id}?`)) return;
         apiFetch(`/requests/${id}/decline`, { method: "POST" }).then(resp => {
@@ -407,7 +419,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // cancel scan request
     function cancelScanRequest(id) {
         if (!confirm(`Cancel request #${id}? This cannot be undone.`)) return;
         apiFetch(`/requests/${id}/cancel`, { method: "POST" }).then(resp => {
@@ -421,9 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-
-
-    // results
+    // results page
     function loadResultsPage() {
         apiFetch("/results").then(resp => {
             if (resp.status !== 200) return;
@@ -431,7 +440,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // select
     function populateScanSelect(scans) {
         const old = document.getElementById("scanSelect");
         const fresh = old.cloneNode(false);
@@ -450,12 +458,11 @@ document.addEventListener("DOMContentLoaded", () => {
         old.parentNode.replaceChild(fresh, old);
     }
 
-
-    // display scan results
     function displayScanResults(resultId) {
         apiFetch(`/results/${resultId}`).then(resp => {
             if (resp.status !== 200) return;
             const { metadata, devices, summary } = resp.data;
+            const isRich = metadata.scan_type === "Active" || metadata.scan_type === "Deep Passive";
 
             const metaTbody = clearTable("#scanMetadataTable tbody");
             if (metaTbody) {
@@ -465,32 +472,111 @@ document.addEventListener("DOMContentLoaded", () => {
                 ]);
             }
 
+            // devices table 
+            const devicesTable = document.getElementById("devicesTable");
             const devicesTbody = clearTable("#devicesTable tbody");
+
+            const baseHeaders = ["MAC", "Vendor", "Signal (dBm)", "Channel", "Time Seen", "Flags", "Status"];
+            const richHeaders  = ["Frame Count", "Signal Variance", "Beacon Interval", "Probe SSIDs", "SSID History", "Associated BSSID", "Deauth Frames"];
+            const headers = isRich ? [...baseHeaders, ...richHeaders] : baseHeaders;
+
+            const thead = devicesTable.querySelector("thead");
+            thead.innerHTML = "";
+            const headerRow = thead.insertRow();
+            headers.forEach(h => {
+                const th = document.createElement("th");
+                th.textContent = h;
+                headerRow.appendChild(th);
+            });
+
             if (devicesTbody) {
                 devices.forEach(d => {
                     const tr = addRow(devicesTbody, [
-                        d.mac, d.vendor, d.signal, d.channel, fmtDate(d.time_seen), d.flags || "N/A"
+                        d.mac, d.vendor, d.signal, d.channel,
+                        fmtDate(d.time_seen), d.flags || "None"
                     ]);
                     if (!d.known) tr.classList.add("unknown-device");
+
                     const badge = el("span", d.known ? "badge known" : "badge unknown");
-                    badge.textContent = d.known ? `✓ Known: ${d.label}` : "⚠ Unknown Device";
+                    badge.textContent = d.known ? `Known: ${d.label}` : "Unknown Device";
                     tr.insertCell().appendChild(badge);
+
+                    if (isRich) {
+                        addCellText(tr, d.frame_count != null ? d.frame_count : "N/A");
+
+                        const varCell = tr.insertCell();
+                        if (d.signal_variance != null) {
+                            varCell.textContent = d.signal_variance.toFixed(1);
+                            if (d.signal_variance > 10) varCell.classList.add("flag-warning");
+                        } else {
+                            varCell.textContent = "N/A";
+                        }
+
+                        const beaconCell = tr.insertCell();
+                        if (d.beacon_interval != null) {
+                            beaconCell.textContent = `${d.beacon_interval} ms`;
+                            if (d.beacon_interval !== 100) beaconCell.classList.add("flag-warning");
+                        } else {
+                            beaconCell.textContent = "N/A";
+                        }
+
+                        const probeCell = tr.insertCell();
+                        const probeCount = d.probe_ssids ? d.probe_ssids.length : 0;
+                        probeCell.textContent = probeCount > 0 ? `${probeCount} SSIDs` : "None";
+                        probeCell.title = d.probe_ssids ? d.probe_ssids.join(", ") : "";
+                        if (probeCount >= 5) probeCell.classList.add("flag-warning");
+
+                        const histCell = tr.insertCell();
+                        const histCount = d.ssid_history ? d.ssid_history.length : 0;
+                        histCell.textContent = histCount > 0 ? d.ssid_history.join(", ") : "None";
+
+                        addCellText(tr, d.associated_bssid || "None");
+
+                        const deauthCell = tr.insertCell();
+                        deauthCell.textContent = d.deauth_count != null ? d.deauth_count : 0;
+                        if (d.deauth_count > 0) deauthCell.classList.add("flag-danger");
+                    }
                 });
             }
 
+            // summary table
+            const summaryTable = document.getElementById("summaryTable");
             const summaryTbody = clearTable("#summaryTable tbody");
+
+            const baseSummaryHeaders = ["Total Devices", "Suspicious", "Rogue AP", "Bandwidth"];
+            const richSummaryHeaders = ["Total Deauth Frames", "Unknown Associations"];
+            const summaryHeaders = isRich ? [...baseSummaryHeaders, ...richSummaryHeaders] : baseSummaryHeaders;
+
+            const summaryThead = summaryTable.querySelector("thead");
+            summaryThead.innerHTML = "";
+            const summaryHeaderRow = summaryThead.insertRow();
+            summaryHeaders.forEach(h => {
+                const th = document.createElement("th");
+                th.textContent = h;
+                summaryHeaderRow.appendChild(th);
+            });
+
             if (summaryTbody) {
-                addRow(summaryTbody, [
+                const baseCells = [
                     summary.total_devices, summary.suspicious,
                     summary.rogue_ap ? "Yes" : "No", summary.bandwidth
-                ]);
+                ];
+                const richCells = isRich ? [
+                    summary.total_deauth_frames || 0,
+                    summary.unknown_associations || 0
+                ] : [];
+                addRow(summaryTbody, [...baseCells, ...richCells]);
             }
 
             window._currentScanData = { metadata, devices, summary };
         });
     }
 
-    // export results 
+    // add a plain text
+    function addCellText(tr, text) {
+        tr.insertCell().textContent = text;
+    }
+
     document.getElementById("exportCSV").addEventListener("click", () => {
         const d = window._currentScanData;
         if (!d) { alert("Select a scan first."); return; }
@@ -519,7 +605,6 @@ document.addEventListener("DOMContentLoaded", () => {
         link.remove();
     });
 
-    // export json
     document.getElementById("exportJSON").addEventListener("click", () => {
         const d = window._currentScanData;
         if (!d) { alert("Select a scan first."); return; }
@@ -538,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-    // load admin page
+    // admin page
     function loadAdminPage() {
         apiFetch("/known-devices").then(resp => {
             if (resp.status !== 200) return;
@@ -572,7 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         container.appendChild(table);
 
-        // add device
+        // add device form
         const form = el("div", "add-device-form");
         form.appendChild(el("h4", null, "Add Known Device"));
 
@@ -625,9 +710,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // node page
 
-    // load node
+    // node page
     function loadNodesPage() {
         const btnReg = document.getElementById("btnRegisterNode");
         if (btnReg) btnReg.classList.toggle("hidden", currentUser.role !== "admin");
@@ -639,7 +723,7 @@ document.addEventListener("DOMContentLoaded", () => {
             tbody.innerHTML = "";
 
             if (resp.status !== 200) {
-                emptyRow(tbody, 6, "Failed to load nodes. check server connection");
+                emptyRow(tbody, 6, "Failed to load nodes — check server connection");
                 return;
             }
             if (resp.data.length === 0) {
@@ -668,8 +752,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const alertBadge = el("span", n.alert_count > 0 ? "badge unknown" : "badge known");
                 alertBadge.textContent = n.alert_count > 0
-                    ? `⚠ ${n.alert_count} alert${n.alert_count > 1 ? "s" : ""}`
-                    : "✓ None";
+                    ? `${n.alert_count} alert${n.alert_count > 1 ? "s" : ""}`
+                    : "None";
                 tr.insertCell().appendChild(alertBadge);
 
                 tr.onclick = () => loadNodeDetail(n.id, n.node_uid, n.location);
@@ -677,7 +761,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // node details 
     function loadNodeDetail(nodeId, uid, location) {
         const panel = document.getElementById("nodeDetailPanel");
         document.getElementById("nodeDetailTitle").textContent = `${uid} - ${location}`;
@@ -699,24 +782,21 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const d = resp.data;
-            
-            // scans today
+
             const scansTbody = clearTable("#nodeScansTable tbody");
             if (d.recent_scans.length === 0) {
                 emptyRow(scansTbody, 3, "No scans yet");
             } else {
                 d.recent_scans.forEach(s => addRow(scansTbody, [`#${s.id}`, s.scan_type, fmtDate(s.created_at)]));
-            }   
+            }
 
-            // scheduled scans
             const schedTbody = clearTable("#nodeScheduledTable tbody");
             if (d.scheduled_scans.length === 0) {
                 emptyRow(schedTbody, 3, "No scheduled scans");
             } else {
                 d.scheduled_scans.forEach(s => addRow(schedTbody, [`#${s.id}`, s.scan_type, fmtDate(s.scheduled_at)]));
             }
-            
-            // errors 
+
             const errorsTbody = clearTable("#nodeErrorsTable tbody");
             if (d.recent_errors.length === 0) {
                 emptyRow(errorsTbody, 2, "No errors recorded");
@@ -757,8 +837,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("registerNodeForm").classList.toggle("hidden");
     }
 
-
-    // register node
     function registerNode() {
         const location = document.getElementById("nodeLocation").value.trim();
         const network  = document.getElementById("nodeNetwork").value;
@@ -788,8 +866,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.toggleRegisterForm = toggleRegisterForm;
 
 
-    // password modal
-
+    // load admin page
     function showPasswordModal(title, message, onConfirm) {
         const existing = document.getElementById("pwdModalOverlay");
         if (existing) existing.remove();

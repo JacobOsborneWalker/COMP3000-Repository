@@ -42,14 +42,23 @@ def get_result_detail(result_id):
     for d in r.devices:
         mac_upper = d.mac.upper()
         devices.append({
-            "mac":      d.mac,
-            "vendor":   d.vendor,
-            "signal":   d.signal,
-            "channel":  d.channel,
-            "time_seen": d.time_seen.isoformat() if d.time_seen else None,
-            "flags":    d.flags,
-            "known":    mac_upper in known_macs,
-            "label":    known_macs.get(mac_upper, None)
+            "mac":              d.mac,
+            "vendor":           d.vendor,
+            "signal":           d.signal,
+            "channel":          d.channel,
+            "time_seen":        d.time_seen.isoformat() if d.time_seen else None,
+            "first_seen":       d.first_seen.isoformat() if d.first_seen else None,
+            "last_seen":        d.last_seen.isoformat() if d.last_seen else None,
+            "flags":            d.flags,
+            "frame_count":      d.frame_count,
+            "signal_variance":  d.signal_variance,
+            "beacon_interval":  d.beacon_interval,
+            "probe_ssids":      d.probe_ssids.split(",") if d.probe_ssids else [],
+            "ssid_history":     d.ssid_history.split(",") if d.ssid_history else [],
+            "associated_bssid": d.associated_bssid,
+            "deauth_count":     d.deauth_count,
+            "known":            mac_upper in known_macs,
+            "label":            known_macs.get(mac_upper, None)
         })
 
     return jsonify({
@@ -63,10 +72,12 @@ def get_result_detail(result_id):
         },
         "devices": devices,
         "summary": {
-            "total_devices": r.total_devices,
-            "suspicious":    r.suspicious,
-            "rogue_ap":      r.rogue_ap,
-            "bandwidth":     r.bandwidth
+            "total_devices":        r.total_devices,
+            "suspicious":           r.suspicious,
+            "rogue_ap":             r.rogue_ap,
+            "bandwidth":            r.bandwidth,
+            "total_deauth_frames":  r.total_deauth_frames,
+            "unknown_associations": r.unknown_associations
         }
     })
 

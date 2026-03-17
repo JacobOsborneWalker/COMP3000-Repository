@@ -1,4 +1,3 @@
-
 # models.py - collumn level encryption for users, scan requests, detected devices and known devices
 
 
@@ -149,26 +148,30 @@ class KnownDevice(db.Model):
 class ScanResult(db.Model):
     __tablename__ = "scan_results"
 
-    id              = db.Column(db.Integer, primary_key=True)
-    scan_request_id = db.Column(db.Integer, db.ForeignKey("scan_requests.id"), nullable=False)
-    total_devices   = db.Column(db.Integer, default=0)
-    suspicious      = db.Column(db.Integer, default=0)
-    rogue_ap        = db.Column(db.Boolean, default=False)
-    bandwidth       = db.Column(db.String(50), nullable=True)
-    created_at      = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    id                   = db.Column(db.Integer, primary_key=True)
+    scan_request_id      = db.Column(db.Integer, db.ForeignKey("scan_requests.id"), nullable=False)
+    total_devices        = db.Column(db.Integer, default=0)
+    suspicious           = db.Column(db.Integer, default=0)
+    rogue_ap             = db.Column(db.Boolean, default=False)
+    bandwidth            = db.Column(db.String(50), nullable=True)
+    total_deauth_frames  = db.Column(db.Integer, default=0, nullable=True)
+    unknown_associations = db.Column(db.Integer, default=0, nullable=True)
+    created_at           = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     scan_request = db.relationship("ScanRequest", backref="results")
     devices      = db.relationship("DetectedDevice", backref="scan_result", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
-            "id":              self.id,
-            "scan_request_id": self.scan_request_id,
-            "total_devices":   self.total_devices,
-            "suspicious":      self.suspicious,
-            "rogue_ap":        self.rogue_ap,
-            "bandwidth":       self.bandwidth,
-            "created_at":      self.created_at.isoformat(),
+            "id":                   self.id,
+            "scan_request_id":      self.scan_request_id,
+            "total_devices":        self.total_devices,
+            "suspicious":           self.suspicious,
+            "rogue_ap":             self.rogue_ap,
+            "bandwidth":            self.bandwidth,
+            "total_deauth_frames":  self.total_deauth_frames,
+            "unknown_associations": self.unknown_associations,
+            "created_at":           self.created_at.isoformat(),
         }
 
 
@@ -176,14 +179,23 @@ class ScanResult(db.Model):
 class DetectedDevice(db.Model):
     __tablename__ = "detected_devices"
 
-    id             = db.Column(db.Integer, primary_key=True)
-    scan_result_id = db.Column(db.Integer, db.ForeignKey("scan_results.id"), nullable=False)
-    _mac           = db.Column("mac",    db.String(512), nullable=False)
-    _vendor        = db.Column("vendor", db.String(512), nullable=True)
-    signal         = db.Column(db.Integer, nullable=True)
-    channel        = db.Column(db.String(10), nullable=True)
-    time_seen      = db.Column(db.DateTime, nullable=True)
-    flags          = db.Column(db.String(255), nullable=True)
+    id               = db.Column(db.Integer, primary_key=True)
+    scan_result_id   = db.Column(db.Integer, db.ForeignKey("scan_results.id"), nullable=False)
+    _mac             = db.Column("mac",    db.String(512), nullable=False)
+    _vendor          = db.Column("vendor", db.String(512), nullable=True)
+    signal           = db.Column(db.Integer,   nullable=True)
+    channel          = db.Column(db.String(10), nullable=True)
+    time_seen        = db.Column(db.DateTime,   nullable=True)
+    first_seen       = db.Column(db.DateTime,   nullable=True)
+    last_seen        = db.Column(db.DateTime,   nullable=True)
+    flags            = db.Column(db.String(255), nullable=True)
+    frame_count      = db.Column(db.Integer,    nullable=True)
+    signal_variance  = db.Column(db.Float,      nullable=True)
+    beacon_interval  = db.Column(db.Integer,    nullable=True)
+    probe_ssids      = db.Column(db.Text,       nullable=True)  # stored as comma-separated string
+    ssid_history     = db.Column(db.Text,       nullable=True)  # stored as comma-separated string
+    associated_bssid = db.Column(db.String(50), nullable=True)
+    deauth_count     = db.Column(db.Integer,    default=0, nullable=True)
 
     @property
     def mac(self):
@@ -203,13 +215,22 @@ class DetectedDevice(db.Model):
 
     def to_dict(self):
         return {
-            "id":       self.id,
-            "mac":      self.mac,
-            "vendor":   self.vendor,
-            "signal":   self.signal,
-            "channel":  self.channel,
-            "time_seen": self.time_seen.isoformat() if self.time_seen else None,
-            "flags":    self.flags,
+            "id":               self.id,
+            "mac":              self.mac,
+            "vendor":           self.vendor,
+            "signal":           self.signal,
+            "channel":          self.channel,
+            "time_seen":        self.time_seen.isoformat() if self.time_seen else None,
+            "first_seen":       self.first_seen.isoformat() if self.first_seen else None,
+            "last_seen":        self.last_seen.isoformat() if self.last_seen else None,
+            "flags":            self.flags,
+            "frame_count":      self.frame_count,
+            "signal_variance":  self.signal_variance,
+            "beacon_interval":  self.beacon_interval,
+            "probe_ssids":      self.probe_ssids.split(",") if self.probe_ssids else [],
+            "ssid_history":     self.ssid_history.split(",") if self.ssid_history else [],
+            "associated_bssid": self.associated_bssid,
+            "deauth_count":     self.deauth_count,
         }
 
 

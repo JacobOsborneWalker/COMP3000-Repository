@@ -134,6 +134,17 @@ th, td {
 th { background: #f2f2f2; color: #333; }
 td button { padding: 6px 12px; border-radius: 6px; cursor: pointer; }
 
+/* wide tables scroll horizontally rather than overflow the page */
+.table-scroll {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.table-scroll table {
+    width: max-content;
+    min-width: 100%;
+}
+
 /* forms */
 .form-group { margin-bottom: 15px; }
 
@@ -367,3 +378,16 @@ tr.unknown-device:hover { background: #fff3cd !important; }
 }
 
 #pwdModalCancel:hover { background: #f0f0f0; }
+
+/* behavioural indicator flags in results table */
+td.flag-warning {
+    background: #fff3cd;
+    color: #856404;
+    font-weight: 600;
+}
+
+td.flag-danger {
+    background: #f8d7da;
+    color: #721c24;
+    font-weight: 600;
+}

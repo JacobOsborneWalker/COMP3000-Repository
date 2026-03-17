@@ -40,11 +40,14 @@ def add_known_device():
     if not MAC_REGEX.match(mac):
         return jsonify({"error": "Invalid MAC address format"}), 400
 
-    if KnownDevice.query.filter_by(mac=mac).first():
+    already_exists = any(d.mac.upper() == mac for d in KnownDevice.query.all())
+    if already_exists:
         return jsonify({"error": "This MAC address is already registered"}), 409
 
     user_id = int(get_jwt_identity())
-    device = KnownDevice(mac=mac, label=label, added_by_id=user_id)
+    device = KnownDevice(added_by_id=user_id)
+    device.mac   = mac
+    device.label = label
     db.session.add(device)
     db.session.commit()
 

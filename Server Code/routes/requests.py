@@ -5,7 +5,7 @@ import random
 import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
-from models import db, ScanRequest, ScanResult, DetectedDevice
+from models import db, User, ScanRequest, ScanResult, DetectedDevice, KnownDevice
 from auth_middleware import require_roles
 from datetime import datetime
 
@@ -23,7 +23,8 @@ def _load_fake_results():
 # generate results
 def _generate_result(scan_request):
     pool = _load_fake_results()
-    template = random.choice(pool)
+    matching = [t for t in pool if t.get("scan_type") == scan_request.scan_type]
+    template = random.choice(matching if matching else pool)
     now = datetime.utcnow()
 
     suspicious_count = sum(1 for d in template["devices"] if d.get("flags", "") != "")
@@ -40,17 +41,40 @@ def _generate_result(scan_request):
     db.session.add(result)
     db.session.flush()  
 
+    known_macs = {kd.mac.upper() for kd in KnownDevice.query.all()}
+    total_deauth  = 0
+    unknown_assoc = 0
+
     for d in template["devices"]:
+        deauth = d.get("deauth_count", 0) or 0
+        total_deauth += deauth
+
+        assoc = d.get("associated_bssid")
+        if assoc and assoc.upper() not in known_macs:
+            unknown_assoc += 1
+
         device = DetectedDevice(
-            scan_result_id = result.id,
-            signal         = d["signal"],
-            channel        = str(d["channel"]),
-            time_seen      = now,
-            flags          = d.get("flags", "")
+            scan_result_id   = result.id,
+            signal           = d["signal"],
+            channel          = str(d["channel"]),
+            time_seen        = now,
+            first_seen       = now,
+            last_seen        = now,
+            flags            = d.get("flags", ""),
+            frame_count      = d.get("frame_count"),
+            signal_variance  = d.get("signal_variance"),
+            beacon_interval  = d.get("beacon_interval"),
+            probe_ssids      = ",".join(d["probe_ssids"]) if d.get("probe_ssids") else None,
+            ssid_history     = ",".join(d["ssid_history"]) if d.get("ssid_history") else None,
+            associated_bssid = d.get("associated_bssid"),
+            deauth_count     = deauth,
         )
         device.mac    = d["mac"].upper()
         device.vendor = d["vendor"]
         db.session.add(device)
+
+    result.total_deauth_frames  = total_deauth
+    result.unknown_associations = unknown_assoc
 
     return result
 

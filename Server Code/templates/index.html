@@ -44,12 +44,10 @@
         <div id="createScan" class="page hidden">
             <h2>Create Scan</h2>
             <div class="form-group">
-                <label for="networkSelect">Target Network</label>
-                <select id="networkSelect">
-                    <option value="">Select Network</option>
-                    <option value="Network1">Network1</option>
-                    <option value="Network2">Network2</option>
-                </select>
+                <label>Target Nodes</label>
+                <div id="nodeCheckboxList" class="node-checkbox-list">
+                    <p class="schedule-hint">Loading nodes...</p>
+                </div>
             </div>
             <div class="form-group">
                 <label for="scanTypeSelect">Scan Type</label>
@@ -178,35 +176,18 @@
 
             <!-- detected devices -->
             <h3>Detected Devices</h3>
-            <table id="devicesTable">
-                <thead>
-                    <tr>
-                        <th>MAC</th>
-                        <th>Vendor</th>
-                        <th>Signal Strength (dBm)</th>
-                        <th>Channel</th>
-                        <th>Time Seen</th>
-                        <th>Flags</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+            <div class="table-scroll">
+                <table id="devicesTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
 
             <!-- summary insight -->
             <h3>Summary Insights</h3>
             <table id="summaryTable">
-                <thead>
-                    <tr>
-                        <th>Total Devices</th>
-                        <th>Suspicious Signals</th>
-                        <th>Rogue AP Indicators</th>
-                        <th>Peak Bandwidth / Congestion</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
+                <thead></thead>
+                <tbody></tbody>
             </table>
 
             <!-- export button -->
@@ -252,11 +233,7 @@
                     </div>
                     <div class="form-group">
                         <label>Network</label>
-                        <select id="nodeNetwork">
-                            <option value="">Select Network</option>
-                            <option value="Network1">Network1</option>
-                            <option value="Network2">Network2</option>
-                        </select>
+                        <input type="text" id="nodeNetwork" placeholder="e.g. 192.168.1.0/24">
                     </div>
                 </div>
                 <div class="form-row-btns">

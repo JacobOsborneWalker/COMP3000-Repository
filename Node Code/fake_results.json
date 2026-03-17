@@ -1,44 +1,180 @@
 [
   {
+    "scan_type": "Passive",
+    "bandwidth": "Low",
     "devices": [
-      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -45, "channel": 6,  "time_seen": "auto", "flags": ""},
-      {"mac": "44:55:66:77:88:99", "vendor": "Apple",        "signal": -60, "channel": 11, "time_seen": "auto", "flags": ""},
-      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -55, "channel": 1,  "time_seen": "auto", "flags": ""}
-    ],
-    "bandwidth": "Low"
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -45, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "44:55:66:77:88:99", "vendor": "Apple",   "signal": -60, "channel": 11, "time_seen": "auto", "flags": ""},
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung", "signal": -55, "channel": 1,  "time_seen": "auto", "flags": ""}
+    ]
   },
   {
+    "scan_type": "Passive",
+    "bandwidth": "Medium",
     "devices": [
-      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -50, "channel": 6,  "time_seen": "auto", "flags": ""},
-      {"mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown",      "signal": -80, "channel": 6,  "time_seen": "auto", "flags": "Suspicious"},
-      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -65, "channel": 1,  "time_seen": "auto", "flags": ""}
-    ],
-    "bandwidth": "Medium"
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -50, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown", "signal": -80, "channel": 6,  "time_seen": "auto", "flags": "Suspicious"},
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung", "signal": -65, "channel": 1,  "time_seen": "auto", "flags": ""}
+    ]
   },
   {
+    "scan_type": "Passive",
+    "bandwidth": "High",
     "devices": [
-      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -48, "channel": 6,  "time_seen": "auto", "flags": ""},
-      {"mac": "44:55:66:77:88:99", "vendor": "Apple",        "signal": -72, "channel": 11, "time_seen": "auto", "flags": ""},
-      {"mac": "FE:DC:BA:98:76:54", "vendor": "Unknown",      "signal": -90, "channel": 11, "time_seen": "auto", "flags": "Rogue AP"},
-      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -58, "channel": 1,  "time_seen": "auto", "flags": ""}
-    ],
-    "bandwidth": "High"
+      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -48, "channel": 6,  "time_seen": "auto", "flags": ""},
+      {"mac": "44:55:66:77:88:99", "vendor": "Apple",   "signal": -72, "channel": 11, "time_seen": "auto", "flags": ""},
+      {"mac": "FE:DC:BA:98:76:54", "vendor": "Unknown", "signal": -90, "channel": 11, "time_seen": "auto", "flags": "Rogue AP"},
+      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung", "signal": -58, "channel": 1,  "time_seen": "auto", "flags": ""}
+    ]
   },
   {
+    "scan_type": "Active",
+    "bandwidth": "Medium",
     "devices": [
-      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -42, "channel": 6,  "time_seen": "auto", "flags": ""},
-      {"mac": "C4:E9:84:12:34:56", "vendor": "Intel",        "signal": -67, "channel": 3,  "time_seen": "auto", "flags": ""},
-      {"mac": "44:55:66:77:88:99", "vendor": "Apple",        "signal": -75, "channel": 11, "time_seen": "auto", "flags": ""}
-    ],
-    "bandwidth": "Low"
+      {
+        "mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -42, "channel": 6,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 534,
+        "signal_variance": 2.3, "beacon_interval": 100,
+        "ssid_history": ["SchoolNet"], "probe_ssids": [],
+        "associated_bssid": null, "deauth_count": 0
+      },
+      {
+        "mac": "C4:E9:84:12:34:56", "vendor": "Intel",   "signal": -67, "channel": 3,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 211,
+        "signal_variance": 3.1, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "StaffWifi"],
+        "associated_bssid": "AA:BB:CC:11:22:33", "deauth_count": 0
+      },
+      {
+        "mac": "44:55:66:77:88:99", "vendor": "Apple",   "signal": -75, "channel": 11, "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 189,
+        "signal_variance": 4.0, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi"],
+        "associated_bssid": "AA:BB:CC:11:22:33", "deauth_count": 0
+      },
+      {
+        "mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown", "signal": -88, "channel": 6,  "time_seen": "auto", "flags": "Suspicious",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 93,
+        "signal_variance": 21.4, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi", "BT-Guest", "Virgin-Media", "SKY12345", "AndroidAP", "iPhone"],
+        "associated_bssid": null, "deauth_count": 0
+      }
+    ]
   },
   {
+    "scan_type": "Active",
+    "bandwidth": "High",
     "devices": [
-      {"mac": "12:34:56:78:90:AB", "vendor": "Samsung",      "signal": -53, "channel": 1,  "time_seen": "auto", "flags": ""},
-      {"mac": "BA:DC:AF:E0:12:34", "vendor": "Unknown",      "signal": -85, "channel": 6,  "time_seen": "auto", "flags": "Suspicious"},
-      {"mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",        "signal": -47, "channel": 6,  "time_seen": "auto", "flags": ""},
-      {"mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown",      "signal": -78, "channel": 11, "time_seen": "auto", "flags": "Suspicious"}
-    ],
-    "bandwidth": "High"
+      {
+        "mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -47, "channel": 6,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 902,
+        "signal_variance": 1.8, "beacon_interval": 100,
+        "ssid_history": ["SchoolNet"], "probe_ssids": [],
+        "associated_bssid": null, "deauth_count": 0
+      },
+      {
+        "mac": "12:34:56:78:90:AB", "vendor": "Samsung", "signal": -53, "channel": 1,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 318,
+        "signal_variance": 5.2, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet"],
+        "associated_bssid": "FE:DC:BA:98:76:54", "deauth_count": 0
+      },
+      {
+        "mac": "FE:DC:BA:98:76:54", "vendor": "Unknown", "signal": -91, "channel": 11, "time_seen": "auto", "flags": "Rogue AP",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 1455,
+        "signal_variance": 1.1, "beacon_interval": 150,
+        "ssid_history": ["SchoolNet", "SchoolNet_5G", "FreeWifi"], "probe_ssids": [],
+        "associated_bssid": null, "deauth_count": 0
+      },
+      {
+        "mac": "BA:DC:AF:E0:12:34", "vendor": "Unknown", "signal": -85, "channel": 6,  "time_seen": "auto", "flags": "Suspicious",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 61,
+        "signal_variance": 29.3, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi", "BT-Guest", "PrettyFlyForAWifi", "VM1234567", "SKY67890"],
+        "associated_bssid": "FE:DC:BA:98:76:54", "deauth_count": 18
+      },
+      {
+        "mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown", "signal": -78, "channel": 11, "time_seen": "auto", "flags": "Suspicious",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 74,
+        "signal_variance": 14.9, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi", "BT-Guest", "Virgin-Media", "SKY12345"],
+        "associated_bssid": "FE:DC:BA:98:76:54", "deauth_count": 0
+      }
+    ]
+  },
+  {
+    "scan_type": "Deep Passive",
+    "bandwidth": "Medium",
+    "devices": [
+      {
+        "mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -44, "channel": 6,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 412,
+        "signal_variance": 2.1, "beacon_interval": 100,
+        "ssid_history": ["SchoolNet"], "probe_ssids": [],
+        "associated_bssid": "AA:BB:CC:11:22:33", "deauth_count": 0
+      },
+      {
+        "mac": "44:55:66:77:88:99", "vendor": "Apple",   "signal": -61, "channel": 11, "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 198,
+        "signal_variance": 3.4, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi"],
+        "associated_bssid": "AA:BB:CC:11:22:33", "deauth_count": 0
+      },
+      {
+        "mac": "12:34:56:78:90:AB", "vendor": "Samsung", "signal": -57, "channel": 1,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 305,
+        "signal_variance": 2.8, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet"],
+        "associated_bssid": "AA:BB:CC:11:22:33", "deauth_count": 0
+      },
+      {
+        "mac": "DE:AD:BE:EF:01:02", "vendor": "Unknown", "signal": -79, "channel": 6,  "time_seen": "auto", "flags": "Suspicious",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 87,
+        "signal_variance": 18.6, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi", "BT-Guest", "Virgin-Media", "SKY12345", "AndroidAP", "iPhone"],
+        "associated_bssid": null, "deauth_count": 0
+      }
+    ]
+  },
+  {
+    "scan_type": "Deep Passive",
+    "bandwidth": "High",
+    "devices": [
+      {
+        "mac": "AA:BB:CC:11:22:33", "vendor": "Cisco",   "signal": -43, "channel": 6,  "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 891,
+        "signal_variance": 1.9, "beacon_interval": 100,
+        "ssid_history": ["SchoolNet"], "probe_ssids": [],
+        "associated_bssid": null, "deauth_count": 0
+      },
+      {
+        "mac": "44:55:66:77:88:99", "vendor": "Apple",   "signal": -68, "channel": 11, "time_seen": "auto", "flags": "",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 244,
+        "signal_variance": 4.1, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "StaffWifi"],
+        "associated_bssid": "AA:BB:CC:11:22:33", "deauth_count": 0
+      },
+      {
+        "mac": "FE:DC:BA:98:76:54", "vendor": "Unknown", "signal": -88, "channel": 6,  "time_seen": "auto", "flags": "Rogue AP",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 1203,
+        "signal_variance": 1.2, "beacon_interval": 150,
+        "ssid_history": ["SchoolNet", "SchoolNet_5G", "FreeWifi"], "probe_ssids": [],
+        "associated_bssid": null, "deauth_count": 0
+      },
+      {
+        "mac": "BA:DC:AF:E0:12:34", "vendor": "Unknown", "signal": -82, "channel": 6,  "time_seen": "auto", "flags": "Suspicious",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 54,
+        "signal_variance": 31.7, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet", "HomeWifi", "BT-Guest", "PrettyFlyForAWifi", "VM1234567", "SKY67890"],
+        "associated_bssid": "FE:DC:BA:98:76:54", "deauth_count": 14
+      },
+      {
+        "mac": "12:34:56:78:90:AB", "vendor": "Samsung", "signal": -55, "channel": 1,  "time_seen": "auto", "flags": "Suspicious",
+        "first_seen": "auto", "last_seen": "auto", "frame_count": 176,
+        "signal_variance": 5.3, "beacon_interval": null,
+        "ssid_history": [], "probe_ssids": ["SchoolNet"],
+        "associated_bssid": "FE:DC:BA:98:76:54", "deauth_count": 0
+      }
+    ]
   }
 ]
