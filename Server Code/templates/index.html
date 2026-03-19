@@ -50,7 +50,7 @@
                 </select>
             </div>
             <div class="form-group" id="nodeListGroup" style="display:none">
-                <label>Nodes at this site</label>
+                <label>Scanners at this site</label>
                 <div id="nodeCheckboxList" class="node-checkbox-list"></div>
             </div>
             <div class="form-group">
@@ -192,19 +192,19 @@
             </div>
 
             <!-- summary insight -->
-            <div id="combinedSummarySection" class="hidden">
-                <h3>Combined Summary (All Nodes)</h3>
-                <table id="combinedSummaryTable">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
             <h3 id="nodeSummaryLabel">Summary Insights</h3>
             <table id="summaryTable">
                 <thead></thead>
                 <tbody></tbody>
             </table>
+
+            <div id="combinedSummarySection" class="hidden">
+                <h3>Combined Summary (All Scanners)</h3>
+                <table id="combinedSummaryTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
 
             <!-- export button -->
             <div class="export-buttons">
@@ -217,11 +217,11 @@
 
         <!-- noad health -->
         <div id="nodes" class="page hidden">
-            <h2>Node Health</h2>
+            <h2>Scanner Health</h2>
 
             <div class="section-header">
-                <h3>Registered Nodes</h3>
-                <button id="btnRegisterNode" class="primary-btn hidden">+ Register Node</button>
+                <h3>Registered Scanners</h3>
+                <button id="btnRegisterNode" class="primary-btn hidden">+ Register Scanner</button>
             </div>
             <table id="nodesTable">
                 <thead>
@@ -236,13 +236,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="6" class="table-loading">Loading nodes...</td></tr>
+                    <tr><td colspan="6" class="table-loading">Loading scanners...</td></tr>
                 </tbody>
             </table>
 
             <!-- register node -->
             <div id="registerNodeForm" class="sub-form hidden">
-                <h4>Register New Node</h4>
+                <h4>Register New Scanner</h4>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Site</label>
@@ -266,7 +266,7 @@
             <!-- node detail page-->
             <div id="nodeDetailPanel" class="hidden">
                 <div class="section-header">
-                    <h3>Node Detail - <span id="nodeDetailTitle"></span></h3>
+                    <h3>Scanner Detail - <span id="nodeDetailTitle"></span></h3>
                     <button class="secondary-btn" onclick="closeNodeDetail()">✕ Close</button>
                 </div>
 

@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         { title: "Create Scan",      icon: "wifi_tethering",      page: "createScan" },
         { title: "Approve Requests", icon: "assignment_turned_in", page: "approval"   },
         { title: "Scan Results",     icon: "wifi",                 page: "results"    },
-        { title: "Node Health",      icon: "memory",               page: "nodes"      }
+        { title: "Scanner Health",      icon: "memory",               page: "nodes"      }
     ];
 
     loginBtn.addEventListener("click", handleLogin);
@@ -86,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-
     // api
 
     function getToken() {
@@ -126,17 +125,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 setupSession(username, resp.data.role);
             } else {
                 showLoginError(resp.data.error || "Login failed.");
-            }
+            } 
         })
         // flask not running
         .catch(() => showLoginError("Cannot reach server. is Flask running?"));
     }
 
-   
     function showLoginError(msg) {
         loginError.textContent = msg;
         loginError.classList.remove("hidden");
-    }   
+    }
 
     // login erro
     function setupSession(name, role) {
@@ -165,7 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-   
     // keepalive
     let keepaliveInterval = null;
 
@@ -265,11 +262,11 @@ document.addEventListener("DOMContentLoaded", () => {
             networkSelect.disabled = false;
 
             if (nodesResp.status !== 200) {
-                networkSelect.innerHTML = "<option value=''>Failed to load nodes</option>";
+                networkSelect.innerHTML = "<option value=''>Failed to load scanners</option>";
                 return;
             }
             if (nodesResp.data.length === 0) {
-                networkSelect.innerHTML = "<option value=''>No nodes registered</option>";
+                networkSelect.innerHTML = "<option value=''>No scanners registered</option>";
                 networkSelect.disabled = true;
                 return;
             }
@@ -283,7 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const placeholder = document.createElement("option");
             placeholder.value = "";
             placeholder.textContent = sites.length === 1
-                ? "1 site available - select to choose nodes"
+                ? "1 site available - select to choose scanners"
                 : `${sites.length} sites available - select one`;
             networkSelect.appendChild(placeholder);
 
@@ -291,7 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const nodeCount = _allNodes.filter(n => n.site === site).length;
                 const opt = document.createElement("option");
                 opt.value = site;
-                opt.textContent = `${site}  (${nodeCount} node${nodeCount !== 1 ? "s" : ""})`;
+                opt.textContent = `${site}  (${nodeCount} scanner${nodeCount !== 1 ? "s" : ""})`;
                 networkSelect.appendChild(opt);
             });
 
@@ -315,7 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const nodesOnSite = _allNodes.filter(n => n.site === selectedNetwork);
 
         if (nodesOnSite.length === 0) {
-            container.innerHTML = "<p class='schedule-hint'>No nodes at this site</p>";
+            container.innerHTML = "<p class='schedule-hint'>No scanners at this site</p>";
             return;
         }
 
@@ -333,12 +330,11 @@ document.addEventListener("DOMContentLoaded", () => {
             selectAllCb.id   = "node-cb-all";
             const selectAllLabel = el("label");
             selectAllLabel.htmlFor = "node-cb-all";
-            selectAllLabel.textContent = `Select all (${availableNodes.length} nodes)`;
+            selectAllLabel.textContent = `Select all (${availableNodes.length} scanners)`;
             selectAllCb.onchange = function() {
                 container.querySelectorAll("input[type=checkbox]:not(#node-cb-all):not(:disabled)")
                     .forEach(cb => { cb.checked = this.checked; });
             };
-            // keep select-all in sync
             container.addEventListener("change", function(e) {
                 if (e.target.id === "node-cb-all") return;
                 const all  = [...container.querySelectorAll("input[type=checkbox]:not(#node-cb-all):not(:disabled)")];
@@ -388,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const scanMin   = document.getElementById("scanMinute").value;
 
         if (checked.length === 0 || !scan_type) {
-            alert("Please select at least one node and a scan type.");
+            alert("Please select at least one scanner and a scan type.");
             return;
         }
 
@@ -591,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? s.node_labels.join(", ")
                 : s.network;
             const label = s.node_count > 1
-                ? `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${nodeText} (${s.node_count} nodes)`
+                ? `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${nodeText} (${s.node_count} scanners)`
                 : `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${nodeText}`;
             const opt = el("option", null, label);
             opt.value = s.id;
@@ -691,13 +687,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll(".node-tab-btn").forEach(b => b.classList.remove("active"));
                 this.classList.add("active");
                 const summaryLabel = document.getElementById("nodeSummaryLabel");
-                if (summaryLabel) summaryLabel.textContent = `Node Summary - ${label}`;
+                if (summaryLabel) summaryLabel.textContent = `Scanner Summary - ${label}`;
                 displayScanResults(id);
             };
             if (i === 0) {
                 tabBtn.classList.add("active");
                 const summaryLabel = document.getElementById("nodeSummaryLabel");
-                if (summaryLabel) summaryLabel.textContent = `Node Summary - ${label}`;
+                if (summaryLabel) summaryLabel.textContent = `Scanner Summary - ${label}`;
             }
             tabContainer.appendChild(tabBtn);
         });
@@ -961,24 +957,23 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
     // node page
     function loadNodesPage() {
         const btnReg = document.getElementById("btnRegisterNode");
         if (btnReg) btnReg.classList.toggle("hidden", currentUser.role !== "admin");
 
-        const tbody = clearTable("#nodesTable tbody", "Loading nodes...", 6);
+        const tbody = clearTable("#nodesTable tbody", "Loading scanners...", 6);
         if (!tbody) return;
 
         apiFetch("/nodes").then(resp => {
             tbody.innerHTML = "";
 
             if (resp.status !== 200) {
-                emptyRow(tbody, 6, "Failed to load nodes. Check server connection.");
+                emptyRow(tbody, 6, "Failed to load scanners. Check server connection.");
                 return;
             }
             if (resp.data.length === 0) {
-                emptyRow(tbody, 6, "No nodes registered");
+                emptyRow(tbody, 6, "No scanners registered");
                 return;
             }
 
@@ -1046,13 +1041,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     const actionCell = tr.insertCell();
                     if (s.result_id) {
                         actionCell.appendChild(btn("View Results", "primary-btn", () => {
-                            showPage("results");
 
+                            showPage("results");
                             apiFetch("/results").then(resp => {
                                 if (resp.status !== 200) return;
                                 populateScanSelect(resp.data);
                                 displayScanResults(s.result_id);
-        
+
                                 const sel = document.getElementById("scanSelect");
                                 if (sel) sel.value = s.result_id;
                             });
@@ -1089,15 +1084,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const alertsTbody = clearTable("#nodeAlertsTable tbody");
             const canResolve = ["admin", "safeguard"].includes(currentUser.role);
-
             if (d.alerts.length === 0) {
                 emptyRow(alertsTbody, 3, "No active alerts");
             } else {
-
                 d.alerts.forEach(a => {
                     const tr = addRow(alertsTbody, [a.message, fmtDate(a.created_at)]);
                     const actionCell = tr.insertCell();
-
                     if (canResolve) {
                         actionCell.appendChild(btn("Resolve", "", () => resolveAlert(a.id, nodeId)));
                     } else {
@@ -1110,12 +1102,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function resolveAlert(alertId, nodeId) {
         apiFetch(`/nodes/alerts/${alertId}/resolve`, { method: "POST" }).then(resp => {
-
             if (resp.status !== 200) { alert(resp.data.error || "Failed to resolve alert."); return; }
-
             const uid = document.getElementById("nodeDetailTitle").textContent.split(" - ")[0];
             loadNodesPage();
-
             apiFetch(`/nodes/${nodeId}/detail`).then(r => {
                 if (r.status === 200) loadNodeDetail(nodeId, uid, r.data.site, r.data.area);
             });
@@ -1137,14 +1126,14 @@ document.addEventListener("DOMContentLoaded", () => {
             body: JSON.stringify({ site, area, network })
         }).then(resp => {
             if (resp.status === 201) {
-                alert(`Node registered. ID: ${resp.data.node_uid}`);
+                alert(`Scanner registered. ID: ${resp.data.node_uid}`);
                 document.getElementById("nodeSite").value    = "";
                 document.getElementById("nodeArea").value    = "";
                 document.getElementById("nodeNetwork").value = "";
                 toggleRegisterForm();
                 loadNodesPage();
             } else {
-                alert(resp.data.error || "Failed to register node.");
+                alert(resp.data.error || "Failed to register scanner.");
             }
         });
     }
@@ -1155,8 +1144,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.registerNode       = registerNode;
     window.closeNodeDetail    = () => document.getElementById("nodeDetailPanel").classList.add("hidden");
     window.toggleRegisterForm = toggleRegisterForm;
-
-
 
     // password modal
 

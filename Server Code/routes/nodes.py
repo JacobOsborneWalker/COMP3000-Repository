@@ -1,4 +1,4 @@
-## nodes - node health registry
+## nodes - scanner health registry
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
@@ -9,7 +9,7 @@ from datetime import datetime
 nodes_bp = Blueprint("nodes", __name__)
 
 
-# registered nodes
+# registered scanners
 @nodes_bp.route("/nodes", methods=["GET"])
 @require_roles()
 def get_nodes():
@@ -17,7 +17,7 @@ def get_nodes():
     return jsonify([_node_summary(n) for n in nodes])
 
 
-# create new node
+# register new scanner
 @nodes_bp.route("/nodes", methods=["POST"])
 @require_roles(["admin"])
 def register_node():
@@ -34,7 +34,7 @@ def register_node():
     # generate node id
     last = Node.query.order_by(Node.id.desc()).first()
     next_num = (last.id + 1) if last else 1
-    node_uid = f"NODE{next_num:03d}"
+    node_uid = f"SCAN{next_num:03d}"
 
     node = Node(
         node_uid    = node_uid,
@@ -47,20 +47,20 @@ def register_node():
     db.session.add(node)
     db.session.commit()
 
-    return jsonify({"message": "Node registered", "node_uid": node_uid, "id": node.id}), 201
+    return jsonify({"message": "Scanner registered", "node_uid": node_uid, "id": node.id}), 201
 
 
-# remove a node
+# remove a scanner
 @nodes_bp.route("/nodes/<int:node_id>", methods=["DELETE"])
 @require_roles(["admin"])
 def remove_node(node_id):
     node = Node.query.get_or_404(node_id)
     db.session.delete(node)
     db.session.commit()
-    return jsonify({"message": "Node removed"})
+    return jsonify({"message": "Scanner removed"})
 
 
-# node details
+# scanner details
 @nodes_bp.route("/nodes/<int:node_id>/detail", methods=["GET"])
 @require_roles()
 def get_node_detail(node_id):
