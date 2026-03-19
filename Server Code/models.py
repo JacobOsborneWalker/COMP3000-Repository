@@ -68,6 +68,8 @@ class ScanRequest(db.Model):
     _notes       = db.Column("notes",     db.Text, nullable=True)
     scheduled_at = db.Column(db.DateTime, nullable=True)
     status       = db.Column(db.String(20), default="pending", nullable=False)
+    node_uids    = db.Column(db.Text, nullable=True)    
+    node_labels  = db.Column(db.Text, nullable=True)    
     created_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     requester_id   = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
@@ -99,6 +101,8 @@ class ScanRequest(db.Model):
             "notes":        self.notes,
             "scheduled_at": self.scheduled_at.isoformat() if self.scheduled_at else None,
             "status":       self.status,
+            "node_uids":    self.node_uids.split(",") if self.node_uids else [],
+            "node_labels":  self.node_labels.split("|") if self.node_labels else [],
             "created_at":   self.created_at.isoformat(),
             "requester":    self.requester.username,
             "approved_by":  self.approved_by.username if self.approved_by else None,
@@ -150,6 +154,8 @@ class ScanResult(db.Model):
 
     id                   = db.Column(db.Integer, primary_key=True)
     scan_request_id      = db.Column(db.Integer, db.ForeignKey("scan_requests.id"), nullable=False)
+    node_uid             = db.Column(db.String(50), nullable=True)
+    node_label           = db.Column(db.String(200), nullable=True)
     total_devices        = db.Column(db.Integer, default=0)
     suspicious           = db.Column(db.Integer, default=0)
     rogue_ap             = db.Column(db.Boolean, default=False)
@@ -165,6 +171,8 @@ class ScanResult(db.Model):
         return {
             "id":                   self.id,
             "scan_request_id":      self.scan_request_id,
+            "node_uid":             self.node_uid,
+            "node_label":           self.node_label,
             "total_devices":        self.total_devices,
             "suspicious":           self.suspicious,
             "rogue_ap":             self.rogue_ap,
@@ -192,8 +200,8 @@ class DetectedDevice(db.Model):
     frame_count      = db.Column(db.Integer,    nullable=True)
     signal_variance  = db.Column(db.Float,      nullable=True)
     beacon_interval  = db.Column(db.Integer,    nullable=True)
-    probe_ssids      = db.Column(db.Text,       nullable=True)  # stored as comma-separated string
-    ssid_history     = db.Column(db.Text,       nullable=True)  # stored as comma-separated string
+    probe_ssids      = db.Column(db.Text,       nullable=True)  
+    ssid_history     = db.Column(db.Text,       nullable=True) 
     associated_bssid = db.Column(db.String(50), nullable=True)
     deauth_count     = db.Column(db.Integer,    default=0, nullable=True)
 
@@ -241,7 +249,8 @@ class Node(db.Model):
 
     id           = db.Column(db.Integer, primary_key=True)
     node_uid     = db.Column(db.String(50),  unique=True, nullable=False)
-    location     = db.Column(db.String(100), nullable=True)
+    site         = db.Column(db.String(100), nullable=True)
+    area         = db.Column(db.String(100), nullable=True)
     network      = db.Column(db.String(50),  nullable=True)
     status       = db.Column(db.String(20),  default="offline")
     last_checkin = db.Column(db.DateTime,    nullable=True)
@@ -264,7 +273,8 @@ class Node(db.Model):
         return {
             "id":           self.id,
             "node_uid":     self.node_uid,
-            "location":     self.location,
+            "site":         self.site,
+            "area":         self.area,
             "network":      self.network,
             "status":       self.status,
             "last_checkin": self.last_checkin.isoformat() if self.last_checkin else None,

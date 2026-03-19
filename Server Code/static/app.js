@@ -23,7 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
         auditor:    ["results", "nodes", "dashboard"]
     };
 
-
     // icons and pages
     const tileDefs = [
         { title: "Create Scan",      icon: "wifi_tethering",      page: "createScan" },
@@ -39,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
      // dom helper
+
     function el(tag, className, text) {
         const e = document.createElement(tag);
         if (className) e.className = className;
@@ -88,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // api
+
     function getToken() {
         return localStorage.getItem("authToken");
     }
@@ -131,10 +132,11 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(() => showLoginError("Cannot reach server. is Flask running?"));
     }
 
+   
     function showLoginError(msg) {
         loginError.textContent = msg;
         loginError.classList.remove("hidden");
-    }
+    }   
 
     // login erro
     function setupSession(name, role) {
@@ -148,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
         showPage("dashboard");
         startKeepalive();
     }
-
 
     // logout
     function logout() {
@@ -164,6 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
+   
     // keepalive
     let keepaliveInterval = null;
 
@@ -205,18 +207,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // create scan page
+
     function setupCreateScanPage() {
         const select = document.getElementById("scanTypeSelect");
         if (!select) return;
 
         select.innerHTML = '<option value="">Select Type</option>';
-        
-        // descriptions
-        const scanDescriptions = {
-            "Passive":      "Listens passively for broadcast frames. No packets are sent. Suitable for routine monitoring.",
-            "Active":       "Sends probe requests to elicit responses from nearby devices. More thorough but more detectable. Requires justification and password confirmation.",
-            "Deep Passive": "Extended passive capture with behavioural analysis — probe patterns, beacon anomalies, signal variance, deauth volume, and client association mapping. Runs for a longer window."
-        };
 
         const allTypes = [
             { value: "Passive",      label: "Passive Scan" },
@@ -234,18 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
             select.appendChild(opt);
         });
 
-
-        let descBox = document.getElementById("scanTypeDesc");
-        if (!descBox) {
-            descBox = document.createElement("p");
-            descBox.id = "scanTypeDesc";
-            descBox.className = "schedule-hint";
-            select.parentNode.appendChild(descBox);
-        }
-
         const notesLabel = document.querySelector("label[for='scanNotes']");
         select.onchange = function() {
-            descBox.textContent = scanDescriptions[this.value] || "";
             if (!notesLabel) return;
             if (this.value === "Active") {
                 notesLabel.innerHTML = 'Justification <span style="color:var(--danger)">* required for Active scans</span>';
@@ -253,18 +239,156 @@ document.addEventListener("DOMContentLoaded", () => {
                 notesLabel.textContent = "Notes";
             }
         };
+
+        loadNodeCheckboxes();
+    }
+
+    // fetch node data
+    let _allNodes    = null;
+    let _allRequests = null;
+
+    function loadNodeCheckboxes() {
+        const networkSelect = document.getElementById("networkFilterSelect");
+        const nodeListGroup = document.getElementById("nodeListGroup");
+        const container     = document.getElementById("nodeCheckboxList");
+        if (!networkSelect || !container) return;
+
+        // reset state
+        _allNodes    = null;
+        _allRequests = null;
+        networkSelect.innerHTML = "<option value=''>Loading...</option>";
+        networkSelect.disabled  = true;
+        nodeListGroup.style.display = "none";
+        container.innerHTML = "";
+
+        Promise.all([apiFetch("/nodes"), apiFetch("/requests")]).then(([nodesResp, requestsResp]) => {
+            networkSelect.disabled = false;
+
+            if (nodesResp.status !== 200) {
+                networkSelect.innerHTML = "<option value=''>Failed to load nodes</option>";
+                return;
+            }
+            if (nodesResp.data.length === 0) {
+                networkSelect.innerHTML = "<option value=''>No nodes registered</option>";
+                networkSelect.disabled = true;
+                return;
+            }
+
+            _allNodes    = nodesResp.data;
+            _allRequests = requestsResp.status === 200 ? requestsResp.data : [];
+
+            const sites = [...new Set(_allNodes.map(n => n.site))];
+
+            networkSelect.innerHTML = "";
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = sites.length === 1
+                ? "1 site available - select to choose nodes"
+                : `${sites.length} sites available - select one`;
+            networkSelect.appendChild(placeholder);
+
+            sites.forEach(site => {
+                const nodeCount = _allNodes.filter(n => n.site === site).length;
+                const opt = document.createElement("option");
+                opt.value = site;
+                opt.textContent = `${site}  (${nodeCount} node${nodeCount !== 1 ? "s" : ""})`;
+                networkSelect.appendChild(opt);
+            });
+
+            networkSelect.onchange = function() {
+                renderNodeCheckboxes(this.value);
+            };
+        });
+    }
+
+    function renderNodeCheckboxes(selectedNetwork) {
+        const nodeListGroup = document.getElementById("nodeListGroup");
+        const container     = document.getElementById("nodeCheckboxList");
+        container.innerHTML = "";
+
+        if (!selectedNetwork) {
+            nodeListGroup.style.display = "none";
+            return;
+        }
+
+        nodeListGroup.style.display = "block";
+        const nodesOnSite = _allNodes.filter(n => n.site === selectedNetwork);
+
+        if (nodesOnSite.length === 0) {
+            container.innerHTML = "<p class='schedule-hint'>No nodes at this site</p>";
+            return;
+        }
+
+        const statusClasses = {
+            online: "status-online", offline: "status-offline",
+            warning: "status-warning", unknown: "status-unknown"
+        };
+
+        // select all row
+        const availableNodes = nodesOnSite.filter(n => n.status !== "offline");
+        if (availableNodes.length > 1) {
+            const selectAllWrapper = el("div", "node-checkbox-item node-select-all");
+            const selectAllCb = el("input");
+            selectAllCb.type = "checkbox";
+            selectAllCb.id   = "node-cb-all";
+            const selectAllLabel = el("label");
+            selectAllLabel.htmlFor = "node-cb-all";
+            selectAllLabel.textContent = `Select all (${availableNodes.length} nodes)`;
+            selectAllCb.onchange = function() {
+                container.querySelectorAll("input[type=checkbox]:not(#node-cb-all):not(:disabled)")
+                    .forEach(cb => { cb.checked = this.checked; });
+            };
+            // keep select-all in sync
+            container.addEventListener("change", function(e) {
+                if (e.target.id === "node-cb-all") return;
+                const all  = [...container.querySelectorAll("input[type=checkbox]:not(#node-cb-all):not(:disabled)")];
+                selectAllCb.checked      = all.every(cb => cb.checked);
+                selectAllCb.indeterminate = !selectAllCb.checked && all.some(cb => cb.checked);
+            });
+            selectAllWrapper.append(selectAllCb, selectAllLabel);
+            container.appendChild(selectAllWrapper);
+        }
+
+        nodesOnSite.forEach(n => {
+            const isOffline   = n.status === "offline";
+
+            const wrapper  = el("div", "node-checkbox-item" + (isOffline ? " node-offline" : ""));
+            const checkbox = el("input");
+            checkbox.type  = "checkbox";
+            checkbox.id    = `node-cb-${n.id}`;
+            checkbox.value = n.network;
+            checkbox.dataset.nodeUid   = n.node_uid;
+            checkbox.dataset.nodeLabel = `${n.site} / ${n.area}`;
+            if (isOffline) checkbox.disabled = true;
+
+            const labelEl  = el("label");
+            labelEl.htmlFor = `node-cb-${n.id}`;
+
+            const statusBadge = el("span", `status-badge ${statusClasses[n.status] || "status-unknown"}`, n.status);
+            const nodeTitle   = el("span");
+            nodeTitle.innerHTML = `<strong>${n.area}</strong> <span class="node-network-hint">${n.node_uid}</span>`;
+
+            labelEl.append(nodeTitle, " ", statusBadge);
+
+            wrapper.append(checkbox, labelEl);
+            container.appendChild(wrapper);
+        });
+    }
+
+    function generateGroupId() {
+        return "grp-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
     }
 
     function submitScan() {
-        const network   = document.getElementById("networkSelect").value;
+        const checked   = [...document.querySelectorAll("#nodeCheckboxList input:checked:not(#node-cb-all)")];
         const scan_type = document.getElementById("scanTypeSelect").value;
         const notes     = document.getElementById("scanNotes").value.trim();
         const scanDate  = document.getElementById("scanDate").value;
         const scanHour  = document.getElementById("scanHour").value;
         const scanMin   = document.getElementById("scanMinute").value;
 
-        if (!network || !scan_type) {
-            alert("Please select a network and scan type.");
+        if (checked.length === 0 || !scan_type) {
+            alert("Please select at least one node and a scan type.");
             return;
         }
 
@@ -283,15 +407,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const doSubmit = (password) => {
+            const node_uids   = checked.map(cb => cb.dataset.nodeUid);
+            const node_labels = checked.map(cb => cb.dataset.nodeLabel);
+            const networks    = checked.map(cb => cb.value);
+
             apiFetch("/requests", {
                 method: "POST",
-                body: JSON.stringify({ network, scan_type, notes, scheduled_at, password })
+                body: JSON.stringify({ node_uids, node_labels, networks, scan_type, notes, scheduled_at, password })
             }).then(resp => {
                 if (resp.status === 201) {
-                    alert(`Scan submitted — your ID is #${resp.data.id}`);
+                    alert(`Scan request submitted - ID: #${resp.data.id}`);
                     clearScanForm();
                 } else {
-                    alert(resp.data.error || "Failed to submit scan.");
+                    alert(resp.data.error || "Failed to submit scan request.");
                 }
             });
         };
@@ -308,17 +436,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function clearScanForm() {
-        ["networkSelect", "scanTypeSelect", "scanNotes", "scanDate", "scanHour", "scanMinute"]
-            .forEach(id => { document.getElementById(id).value = ""; });
-        const descBox = document.getElementById("scanTypeDesc");
-        if (descBox) descBox.textContent = "";
+        ["networkFilterSelect", "scanTypeSelect", "scanNotes", "scanDate", "scanHour", "scanMinute"]
+            .forEach(id => { const el2 = document.getElementById(id); if (el2) el2.value = ""; });
+        const nodeListGroup = document.getElementById("nodeListGroup");
+        if (nodeListGroup) nodeListGroup.style.display = "none";
+        const container = document.getElementById("nodeCheckboxList");
+        if (container) container.innerHTML = "";
         const notesLabel = document.querySelector("label[for='scanNotes']");
         if (notesLabel) notesLabel.textContent = "Notes";
+        _allNodes = null;
+        _allRequests = null;
+        loadNodeCheckboxes();
     }
 
 
-
     // approval page
+
     function loadApprovalPage() {
         apiFetch("/requests").then(resp => {
             if (resp.status !== 200) return;
@@ -341,7 +474,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const canApprove = ["admin", "safeguard"].includes(currentUser.role);
             const time       = fmtDate(r.scheduled_at || r.created_at);
 
-            const tr = addRow(tbody, [r.id, r.requested_by, r.network, r.scan_type, time, r.notes || "N/A"]);
+            const nodeText = r.node_labels && r.node_labels.length > 0
+                ? r.node_labels.join(", ")
+                : r.network;
+
+            const tr = addRow(tbody, [`#${r.id}`, r.requested_by, nodeText, r.scan_type, time, r.notes || "N/A"]);
             const actionCell = tr.insertCell();
 
             if (isSelf) {
@@ -374,7 +511,10 @@ document.addEventListener("DOMContentLoaded", () => {
             statusCell.textContent = r.status.charAt(0).toUpperCase() + r.status.slice(1);
             statusCell.classList.add(r.status === "approved" ? "status-approved" : "status-declined");
 
-            [r.requested_by, r.approved_by || "N/A", `${r.network} | ${r.scan_type}`].forEach(val => {
+            const nodeText = r.node_labels && r.node_labels.length > 0
+                ? r.node_labels.join(", ")
+                : r.network;
+            [r.requested_by, r.approved_by || "N/A", `${nodeText} | ${r.scan_type}`].forEach(val => {
                 tr.insertCell().textContent = val;
             });
         });
@@ -433,6 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // results page
+
     function loadResultsPage() {
         apiFetch("/results").then(resp => {
             if (resp.status !== 200) return;
@@ -441,21 +582,125 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function populateScanSelect(scans) {
-        const old = document.getElementById("scanSelect");
+        const old   = document.getElementById("scanSelect");
         const fresh = old.cloneNode(false);
         fresh.innerHTML = '<option value="">-- Choose Scan --</option>';
 
         scans.forEach(s => {
-            const opt = el("option", null, `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${s.network}`);
+            const nodeText = s.node_labels && s.node_labels.length > 0
+                ? s.node_labels.join(", ")
+                : s.network;
+            const label = s.node_count > 1
+                ? `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${nodeText} (${s.node_count} nodes)`
+                : `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${nodeText}`;
+            const opt = el("option", null, label);
             opt.value = s.id;
             fresh.appendChild(opt);
         });
 
         fresh.onchange = function() {
-            if (this.value) displayScanResults(this.value);
+            if (this.value) displayScanRequest(this.value);
         };
 
         old.parentNode.replaceChild(fresh, old);
+    }
+
+    function displayScanRequest(requestId) {
+        apiFetch("/results").then(resp => {
+            if (resp.status !== 200) return;
+            const scan = resp.data.find(s => s.id == requestId);
+            if (!scan) return;
+            if (scan.result_ids.length === 0) return;
+
+            window._currentScanRequestId = requestId;
+            window._currentScanResultIds = scan.result_ids;
+            window._currentNodeLabels    = scan.node_labels;
+
+            renderNodeTabs(scan.result_ids, scan.node_labels);
+
+            displayScanResults(scan.result_ids[0]);
+
+            if (scan.result_ids.length > 1) {
+                Promise.all(scan.result_ids.map(id => apiFetch(`/results/${id}`))).then(responses => {
+                    const all = responses.filter(r => r.status === 200).map(r => r.data.summary);
+                    if (all.length === 0) return;
+
+                    const totals = {
+                        total_devices:        all.reduce((s, r) => s + (r.total_devices || 0), 0),
+                        suspicious:           all.reduce((s, r) => s + (r.suspicious || 0), 0),
+                        rogue_ap:             all.some(r => r.rogue_ap),
+                        bandwidth:            all.map(r => r.bandwidth).filter(Boolean).join(" / "),
+                        total_deauth_frames:  all.reduce((s, r) => s + (r.total_deauth_frames || 0), 0),
+                        unknown_associations: all.reduce((s, r) => s + (r.unknown_associations || 0), 0),
+                    };
+
+                    // detect scan type 
+                    const scan_type = responses[0].data.metadata.scan_type;
+                    const isRich = scan_type === "Active" || scan_type === "Deep Passive";
+
+                    // write combined totals 
+                    const combinedSection = document.getElementById("combinedSummarySection");
+                    const combinedTbody   = clearTable("#combinedSummaryTable tbody");
+                    const combinedThead   = document.querySelector("#combinedSummaryTable thead");
+                    if (combinedSection && combinedTbody && combinedThead) {
+                        combinedSection.classList.remove("hidden");
+                        const baseHeaders = ["Total Devices", "Suspicious", "Rogue AP", "Bandwidth"];
+                        const richHeaders  = ["Total Deauth Frames", "Unknown Associations"];
+                        combinedThead.innerHTML = "";
+                        const hRow = combinedThead.insertRow();
+                        (isRich ? [...baseHeaders, ...richHeaders] : baseHeaders).forEach(h => {
+                            const th = document.createElement("th");
+                            th.textContent = h;
+                            hRow.appendChild(th);
+                        });
+                        const baseCells = [
+                            totals.total_devices, totals.suspicious,
+                            totals.rogue_ap ? "Yes" : "No", totals.bandwidth
+                        ];
+                        const richCells = isRich ? [
+                            totals.total_deauth_frames,
+                            totals.unknown_associations
+                        ] : [];
+                        addRow(combinedTbody, [...baseCells, ...richCells]);
+                    }
+                });
+            }
+        });
+    }
+
+    function renderNodeTabs(resultIds, nodeLabels) {
+        const tabContainer = document.getElementById("nodeTabs");
+        if (!tabContainer) return;
+        tabContainer.innerHTML = "";
+
+        if (resultIds.length <= 1) {
+            tabContainer.classList.add("hidden");
+            const combinedSection = document.getElementById("combinedSummarySection");
+            if (combinedSection) combinedSection.classList.add("hidden");
+            const summaryLabel = document.getElementById("nodeSummaryLabel");
+            if (summaryLabel) summaryLabel.textContent = "Summary Insights";
+            return;
+        }
+
+        tabContainer.classList.remove("hidden");
+        resultIds.forEach((id, i) => {
+            const label = nodeLabels && nodeLabels[i] ? nodeLabels[i] : `Node ${i + 1}`;
+            const tabBtn = el("button", "node-tab-btn", label);
+            tabBtn.dataset.resultId = id;
+            tabBtn.onclick = function() {
+                document.querySelectorAll(".node-tab-btn").forEach(b => b.classList.remove("active"));
+                this.classList.add("active");
+                const summaryLabel = document.getElementById("nodeSummaryLabel");
+                if (summaryLabel) summaryLabel.textContent = `Node Summary - ${label}`;
+                displayScanResults(id);
+            };
+            if (i === 0) {
+                tabBtn.classList.add("active");
+                const summaryLabel = document.getElementById("nodeSummaryLabel");
+                if (summaryLabel) summaryLabel.textContent = `Node Summary - ${label}`;
+            }
+            tabContainer.appendChild(tabBtn);
+        });
     }
 
     function displayScanResults(resultId) {
@@ -464,11 +709,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const { metadata, devices, summary } = resp.data;
             const isRich = metadata.scan_type === "Active" || metadata.scan_type === "Deep Passive";
 
+            // metadata
             const metaTbody = clearTable("#scanMetadataTable tbody");
             if (metaTbody) {
                 addRow(metaTbody, [
-                    `#${metadata.id}`, metadata.requested_by, metadata.approved_by || "N/A",
-                    metadata.network, metadata.scan_type, fmtDate(metadata.created_at)
+                    `#${metadata.id}`,
+                    metadata.node_label || metadata.node_uid || "N/A",
+                    metadata.requested_by,
+                    metadata.approved_by || "N/A",
+                    metadata.network,
+                    metadata.scan_type,
+                    fmtDate(metadata.created_at)
                 ]);
             }
 
@@ -683,7 +934,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!mac || !label) { alert("Please fill in both fields."); return; }
         if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(mac)) {
-            alert("Invalid MAC format — use AA:BB:CC:11:22:33");
+            alert("Invalid MAC format. Use AA:BB:CC:11:22:33");
             return;
         }
 
@@ -723,7 +974,7 @@ document.addEventListener("DOMContentLoaded", () => {
             tbody.innerHTML = "";
 
             if (resp.status !== 200) {
-                emptyRow(tbody, 6, "Failed to load nodes — check server connection");
+                emptyRow(tbody, 6, "Failed to load nodes. Check server connection.");
                 return;
             }
             if (resp.data.length === 0) {
@@ -741,7 +992,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 tr.classList.add("clickable-row");
                 tr.title = "Click to view detail";
 
-                [n.node_uid, n.location, n.network].forEach(val => {
+                [n.node_uid, n.site, n.area, n.network].forEach(val => {
                     tr.insertCell().textContent = val;
                 });
 
@@ -756,14 +1007,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     : "None";
                 tr.insertCell().appendChild(alertBadge);
 
-                tr.onclick = () => loadNodeDetail(n.id, n.node_uid, n.location);
+                tr.onclick = () => loadNodeDetail(n.id, n.node_uid, n.site, n.area);
             });
         });
     }
 
-    function loadNodeDetail(nodeId, uid, location) {
+    function loadNodeDetail(nodeId, uid, site, area) {
         const panel = document.getElementById("nodeDetailPanel");
-        document.getElementById("nodeDetailTitle").textContent = `${uid} - ${location}`;
+        document.getElementById("nodeDetailTitle").textContent = `${uid} - ${site} / ${area}`;
         panel.classList.remove("hidden");
         panel.scrollIntoView({ behavior: "smooth" });
 
@@ -783,20 +1034,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const d = resp.data;
 
+            // recent approved scans
             const scansTbody = clearTable("#nodeScansTable tbody");
             if (d.recent_scans.length === 0) {
-                emptyRow(scansTbody, 3, "No scans yet");
+                emptyRow(scansTbody, 5, "No completed scans yet");
             } else {
-                d.recent_scans.forEach(s => addRow(scansTbody, [`#${s.id}`, s.scan_type, fmtDate(s.created_at)]));
+                d.recent_scans.forEach(s => {
+                    const tr = addRow(scansTbody, [
+                        `#${s.id}`, s.scan_type, fmtDate(s.created_at), s.requested_by
+                    ]);
+                    const actionCell = tr.insertCell();
+                    if (s.result_id) {
+                        actionCell.appendChild(btn("View Results", "primary-btn", () => {
+                            showPage("results");
+
+                            apiFetch("/results").then(resp => {
+                                if (resp.status !== 200) return;
+                                populateScanSelect(resp.data);
+                                displayScanResults(s.result_id);
+        
+                                const sel = document.getElementById("scanSelect");
+                                if (sel) sel.value = s.result_id;
+                            });
+                        }));
+                    } else {
+                        actionCell.textContent = "No result";
+                    }
+                });
             }
 
+            // pending scans
             const schedTbody = clearTable("#nodeScheduledTable tbody");
-            if (d.scheduled_scans.length === 0) {
-                emptyRow(schedTbody, 3, "No scheduled scans");
+            if (d.pending_scans.length === 0) {
+                emptyRow(schedTbody, 5, "No pending scans");
             } else {
-                d.scheduled_scans.forEach(s => addRow(schedTbody, [`#${s.id}`, s.scan_type, fmtDate(s.scheduled_at)]));
+                d.pending_scans.forEach(s => {
+                    addRow(schedTbody, [
+                        `#${s.id}`,
+                        s.scan_type,
+                        s.status.charAt(0).toUpperCase() + s.status.slice(1),
+                        s.requested_by,
+                        s.scheduled_at ? fmtDate(s.scheduled_at) : "Unscheduled"
+                    ]);
+                });
             }
 
+            // error 
             const errorsTbody = clearTable("#nodeErrorsTable tbody");
             if (d.recent_errors.length === 0) {
                 emptyRow(errorsTbody, 2, "No errors recorded");
@@ -806,12 +1089,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const alertsTbody = clearTable("#nodeAlertsTable tbody");
             const canResolve = ["admin", "safeguard"].includes(currentUser.role);
+
             if (d.alerts.length === 0) {
                 emptyRow(alertsTbody, 3, "No active alerts");
             } else {
+
                 d.alerts.forEach(a => {
                     const tr = addRow(alertsTbody, [a.message, fmtDate(a.created_at)]);
                     const actionCell = tr.insertCell();
+
                     if (canResolve) {
                         actionCell.appendChild(btn("Resolve", "", () => resolveAlert(a.id, nodeId)));
                     } else {
@@ -824,11 +1110,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function resolveAlert(alertId, nodeId) {
         apiFetch(`/nodes/alerts/${alertId}/resolve`, { method: "POST" }).then(resp => {
+
             if (resp.status !== 200) { alert(resp.data.error || "Failed to resolve alert."); return; }
+
             const uid = document.getElementById("nodeDetailTitle").textContent.split(" - ")[0];
             loadNodesPage();
+
             apiFetch(`/nodes/${nodeId}/detail`).then(r => {
-                if (r.status === 200) loadNodeDetail(nodeId, uid, r.data.location);
+                if (r.status === 200) loadNodeDetail(nodeId, uid, r.data.site, r.data.area);
             });
         });
     }
@@ -838,18 +1127,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function registerNode() {
-        const location = document.getElementById("nodeLocation").value.trim();
-        const network  = document.getElementById("nodeNetwork").value;
-        if (!location || !network) { alert("Please fill in location and network."); return; }
+        const site    = document.getElementById("nodeSite").value.trim();
+        const area    = document.getElementById("nodeArea").value.trim();
+        const network = document.getElementById("nodeNetwork").value.trim();
+        if (!site || !area || !network) { alert("Please fill in site, area, and network."); return; }
 
         apiFetch("/nodes", {
             method: "POST",
-            body: JSON.stringify({ location, network })
+            body: JSON.stringify({ site, area, network })
         }).then(resp => {
             if (resp.status === 201) {
-                alert(`Node registered — ID: ${resp.data.node_uid}`);
-                document.getElementById("nodeLocation").value = "";
-                document.getElementById("nodeNetwork").value  = "";
+                alert(`Node registered. ID: ${resp.data.node_uid}`);
+                document.getElementById("nodeSite").value    = "";
+                document.getElementById("nodeArea").value    = "";
+                document.getElementById("nodeNetwork").value = "";
                 toggleRegisterForm();
                 loadNodesPage();
             } else {
@@ -866,7 +1157,9 @@ document.addEventListener("DOMContentLoaded", () => {
     window.toggleRegisterForm = toggleRegisterForm;
 
 
-    // load admin page
+
+    // password modal
+
     function showPasswordModal(title, message, onConfirm) {
         const existing = document.getElementById("pwdModalOverlay");
         if (existing) existing.remove();

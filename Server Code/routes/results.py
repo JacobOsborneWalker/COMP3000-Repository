@@ -11,22 +11,24 @@ results_bp = Blueprint("results", __name__)
 @results_bp.route("/results", methods=["GET"])
 @require_roles()
 def get_results():
-    results = ScanResult.query.order_by(ScanResult.created_at.desc()).all()
+    from models import ScanRequest
+    requests = ScanRequest.query.filter(
+        ScanRequest.status == "approved"
+    ).order_by(ScanRequest.created_at.desc()).all()
+
     return jsonify([
         {
-            "id":              r.id,
-            "scan_request_id": r.scan_request_id,
-            "network":         r.scan_request.network,
-            "scan_type":       r.scan_request.scan_type,
-            "requested_by":    r.scan_request.requester.username,
-            "approved_by":     r.scan_request.approved_by.username if r.scan_request.approved_by else None,
-            "total_devices":   r.total_devices,
-            "suspicious":      r.suspicious,
-            "rogue_ap":        r.rogue_ap,
-            "bandwidth":       r.bandwidth,
-            "created_at":      r.created_at.isoformat()
+            "id":           req.id,
+            "network":      req.network,
+            "scan_type":    req.scan_type,
+            "requested_by": req.requester.username,
+            "approved_by":  req.approved_by.username if req.approved_by else None,
+            "created_at":   req.results[0].created_at.isoformat() if req.results else req.created_at.isoformat(),
+            "node_labels":  req.node_labels.split("|") if req.node_labels else [],
+            "node_count":   len(req.results),
+            "result_ids":   [r.id for r in req.results],
         }
-        for r in results
+        for req in requests if req.results
     ])
 
 
@@ -64,6 +66,8 @@ def get_result_detail(result_id):
     return jsonify({
         "metadata": {
             "id":           r.id,
+            "node_uid":     r.node_uid,
+            "node_label":   r.node_label,
             "network":      r.scan_request.network,
             "scan_type":    r.scan_request.scan_type,
             "requested_by": r.scan_request.requester.username,

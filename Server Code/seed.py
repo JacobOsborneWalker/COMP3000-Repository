@@ -55,7 +55,8 @@ with app.app_context():
         node_keys[nd["node_uid"]] = plain_key
         n = Node(
             node_uid     = nd["node_uid"],
-            location     = nd["location"],
+            site         = nd["site"],
+            area         = nd["area"],
             network      = nd["network"],
             status       = nd["status"],
             last_checkin = datetime.now(timezone.utc),

@@ -1,19 +1,29 @@
 [
   {
     "node_uid": "NODE-001",
-    "location": "Main Building",
+    "site":     "Main Building",
+    "area":     "Reception",
     "network":  "192.168.1.0/24",
     "status":   "online"
   },
   {
     "node_uid": "NODE-002",
-    "location": "Sports Hall",
-    "network":  "192.168.2.0/24",
+    "site":     "Main Building",
+    "area":     "Server Room",
+    "network":  "192.168.1.0/24",
     "status":   "warning"
   },
   {
     "node_uid": "NODE-003",
-    "location": "Annex Block",
+    "site":     "Sports Hall",
+    "area":     "Main Hall",
+    "network":  "192.168.2.0/24",
+    "status":   "online"
+  },
+  {
+    "node_uid": "NODE-004",
+    "site":     "Annex Block",
+    "area":     "Ground Floor",
     "network":  "192.168.3.0/24",
     "status":   "offline"
   }

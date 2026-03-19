@@ -391,3 +391,124 @@ td.flag-danger {
     color: #721c24;
     font-weight: 600;
 }
+
+/* node checkboxes on create scan page */
+.node-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.node-checkbox-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.node-checkbox-item input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.node-checkbox-item label {
+    cursor: pointer;
+    font-weight: normal;
+    line-height: 1.6;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.node-checkbox-item.node-offline {
+    opacity: 0.5;
+}
+
+.node-checkbox-item.node-offline label,
+.node-checkbox-item.node-offline input {
+    cursor: not-allowed;
+}
+
+.node-network-hint {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.scan-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-right: 4px;
+    font-weight: 600;
+}
+
+.scan-badge-approved {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.scan-badge-pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* select all row in node checkbox list */
+.node-checkbox-item.node-select-all {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 4px;
+    padding-bottom: 12px;
+    background: #f0f4ff;
+}
+
+.node-checkbox-item.node-select-all label {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* node result tabs on the results page */
+.node-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 15px 0 5px;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.node-tab-btn {
+    padding: 6px 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.node-tab-btn:hover {
+    background: #e2e6ea;
+}
+
+.node-tab-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    font-weight: 600;
+}

@@ -13,7 +13,7 @@ nodes_bp = Blueprint("nodes", __name__)
 @nodes_bp.route("/nodes", methods=["GET"])
 @require_roles()
 def get_nodes():
-    nodes = Node.query.order_by(Node.location).all()
+    nodes = Node.query.order_by(Node.site, Node.area).all()
     return jsonify([_node_summary(n) for n in nodes])
 
 
@@ -24,11 +24,12 @@ def register_node():
     data = request.get_json()
     user_id = int(get_jwt_identity())
 
-    location = data.get("location", "").strip()
-    network  = data.get("network", "").strip()
+    site    = data.get("site", "").strip()
+    area    = data.get("area", "").strip()
+    network = data.get("network", "").strip()
 
-    if not location or not network:
-        return jsonify({"error": "Location and network are required"}), 400
+    if not site or not area or not network:
+        return jsonify({"error": "Site, area, and network are required"}), 400
 
     # generate node id
     last = Node.query.order_by(Node.id.desc()).first()
@@ -37,7 +38,8 @@ def register_node():
 
     node = Node(
         node_uid    = node_uid,
-        location    = location,
+        site        = site,
+        area        = area,
         network     = network,
         status      = "unknown",
         added_by_id = user_id
@@ -63,34 +65,22 @@ def remove_node(node_id):
 @require_roles()
 def get_node_detail(node_id):
     node = Node.query.get_or_404(node_id)
+    node_network = node.network  # decrypt once
 
-    node_network = node.network  
+    # filter in Python since network is encrypted
+    all_requests = ScanRequest.query.order_by(ScanRequest.created_at.desc()).all()
+    node_requests = [r for r in all_requests if r.network == node_network]
 
-    approved_reqs = (
-        ScanRequest.query
-        .filter_by(status="approved")
-        .order_by(ScanRequest.created_at.desc())
-        .all()
-    )
-    recent_scans = [r for r in approved_reqs if r.network == node_network][:5]
-
-    pending_reqs = (
-        ScanRequest.query
-        .filter_by(status="pending")
-        .filter(ScanRequest.scheduled_at != None)
-        .order_by(ScanRequest.scheduled_at.asc())
-        .all()
-    )
-    scheduled_scans = [r for r in pending_reqs if r.network == node_network]
-
-    # recent errors 
-    recent_errors = node.errors[:5]
+    recent_scans    = [r for r in node_requests if r.status == "approved"][:5]
+    pending_scans   = [r for r in node_requests if r.status == "pending"]
+    recent_errors   = node.errors[:5]
 
     return jsonify({
         "id":           node.id,
         "node_uid":     node.node_uid,
-        "location":     node.location,
-        "network":      node.network,
+        "site":         node.site,
+        "area":         node.area,
+        "network":      node_network,
         "status":       node.status,
         "last_checkin": node.last_checkin.isoformat() if node.last_checkin else None,
         "alerts": [
@@ -99,14 +89,27 @@ def get_node_detail(node_id):
             for a in node.alerts if not a.resolved
         ],
         "recent_scans": [
-            {"id": s.id, "scan_type": s.scan_type,
-             "created_at": s.created_at.isoformat()}
+            {
+                "id":           s.id,
+                "scan_type":    s.scan_type,
+                "status":       s.status,
+                "requested_by": s.requester.username,
+                "approved_by":  s.approved_by.username if s.approved_by else None,
+                "created_at":   s.created_at.isoformat(),
+                "result_id":    s.results[0].id if s.results else None
+            }
             for s in recent_scans
         ],
-        "scheduled_scans": [
-            {"id": s.id, "scan_type": s.scan_type,
-             "scheduled_at": s.scheduled_at.isoformat()}
-            for s in scheduled_scans
+        "pending_scans": [
+            {
+                "id":           s.id,
+                "scan_type":    s.scan_type,
+                "status":       s.status,
+                "requested_by": s.requester.username,
+                "scheduled_at": s.scheduled_at.isoformat() if s.scheduled_at else None,
+                "created_at":   s.created_at.isoformat()
+            }
+            for s in pending_scans
         ],
         "recent_errors": [
             {"message": e.message, "created_at": e.created_at.isoformat()}
@@ -121,13 +124,15 @@ def node_checkin(node_uid):
     node = Node.query.filter_by(node_uid=node_uid).first_or_404()
     data = request.get_json() or {}
 
-    node.status       = data.get("status", "online")
+    node.status      = data.get("status", "online")
     node.last_checkin = datetime.utcnow()
 
+    # report error
     if data.get("error"):
         err = NodeError(node_id=node.id, message=data["error"])
         db.session.add(err)
 
+    # report alert
     if data.get("alert"):
         alert = NodeAlert(node_id=node.id, message=data["alert"])
         db.session.add(alert)
@@ -151,7 +156,8 @@ def _node_summary(n):
     return {
         "id":           n.id,
         "node_uid":     n.node_uid,
-        "location":     n.location,
+        "site":         n.site,
+        "area":         n.area,
         "network":      n.network,
         "status":       n.status,
         "last_checkin": n.last_checkin.isoformat() if n.last_checkin else None,
