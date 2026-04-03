@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
-from models import db, Node, NodeAlert, NodeError, ScanRequest
+from models import db, Node, NodeAlert, NodeError, ScanRequest, ScanResult, DetectedDevice, KnownDevice
 from auth_middleware import require_roles
 from datetime import datetime
 
@@ -139,6 +139,89 @@ def node_checkin(node_uid):
 
     db.session.commit()
     return jsonify({"message": "Check-in received"})
+
+
+# pi result submission endpoint
+# authenticated by node_uid + api_key headers rather than JWT
+@nodes_bp.route("/nodes/<string:node_uid>/result", methods=["POST"])
+def submit_node_result(node_uid):
+    from models import ScanRequest, ScanResult, DetectedDevice, KnownDevice
+    from datetime import datetime, timezone
+
+    node = Node.query.filter_by(node_uid=node_uid).first_or_404()
+
+    # verify api key
+    api_key = request.headers.get("X-Api-Key", "")
+    if not api_key or not node.check_api_key(api_key):
+        return jsonify({"error": "invalid api key"}), 403
+
+    data = request.get_json() or {}
+    req_id = data.get("scan_request_id")
+    if not req_id:
+        return jsonify({"error": "scan_request_id is required"}), 400
+
+    scan_request = ScanRequest.query.get_or_404(req_id)
+    if scan_request.status != "approved":
+        return jsonify({"error": "scan request is not approved"}), 400
+
+    detected    = data.get("devices", [])
+    now         = datetime.now(timezone.utc)
+    known_macs  = {d.mac.upper() for d in KnownDevice.query.all()}
+
+    suspicious_count = sum(1 for d in detected if d.get("flags"))
+    has_rogue        = any(d.get("flags") == "Rogue AP" for d in detected)
+    total_deauth     = sum(d.get("deauth_count", 0) or 0 for d in detected)
+    unknown_assoc    = sum(
+        1 for d in detected
+        if d.get("associated_bssid") and d["associated_bssid"].upper() not in known_macs
+    )
+
+    result = ScanResult(
+        scan_request_id      = scan_request.id,
+        node_uid             = data.get("node_uid", node_uid),
+        node_label           = data.get("node_label"),
+        total_devices        = len(detected),
+        suspicious           = suspicious_count,
+        rogue_ap             = has_rogue,
+        bandwidth            = data.get("bandwidth", "Unknown"),
+        total_deauth_frames  = total_deauth,
+        unknown_associations = unknown_assoc,
+        created_at           = now,
+    )
+    db.session.add(result)
+    db.session.flush()
+
+    for d in detected:
+        def _parse_dt(val):
+            if not val or val == "auto":
+                return now
+            try:
+                return datetime.fromisoformat(val)
+            except (ValueError, TypeError):
+                return now
+
+        device = DetectedDevice(
+            scan_result_id   = result.id,
+            signal           = d.get("signal"),
+            channel          = str(d.get("channel", "")),
+            time_seen        = _parse_dt(d.get("time_seen")),
+            first_seen       = _parse_dt(d.get("first_seen")),
+            last_seen        = _parse_dt(d.get("last_seen")),
+            flags            = d.get("flags", ""),
+            frame_count      = d.get("frame_count"),
+            signal_variance  = d.get("signal_variance"),
+            beacon_interval  = d.get("beacon_interval"),
+            probe_ssids      = ",".join(d["probe_ssids"]) if d.get("probe_ssids") else None,
+            ssid_history     = ",".join(d["ssid_history"]) if d.get("ssid_history") else None,
+            associated_bssid = d.get("associated_bssid"),
+            deauth_count     = d.get("deauth_count", 0),
+        )
+        device.mac    = d.get("mac", "").upper()
+        device.vendor = d.get("vendor", "Unknown")
+        db.session.add(device)
+
+    db.session.commit()
+    return jsonify({"message": "Result saved", "id": result.id}), 201
 
 
 # resolve alert
