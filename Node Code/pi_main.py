@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 
 
 def main():
+    print("running main")
     log.info("scanner %s starting", SCANNER_UID)
     # chicken at every checkpoint hahaha
     checkin(status="online")
@@ -44,7 +45,7 @@ def main():
             
             poll_counter = 0
 
-if __name__ == "__name__":
+if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:

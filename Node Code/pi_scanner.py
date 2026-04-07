@@ -4,21 +4,21 @@ import json
 import random
 import logging
 from datetime import datetime, timezone
-from pi_config import RESULTS_PATH
+from pi_config import FAKE_RESULTS_PATH
 
 log = logging.getLogger(__name__)
 
 
 # runs scan for given type 
 def run_scan(scan_type):
-    log.info("starting scan ", scan_type)
+    log.info("starting scan %s", scan_type)
 
     try:
-        with open(RESULTS_PATH, "r") as f:
+        with open(FAKE_RESULTS_PATH, "r") as f:
             pool = json.load(f)
     # rerror
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        log.error("could not load results", e)
+        log.error("could not load results: %s", e)
         return None
     
     # pick template matching the scan type

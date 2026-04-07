@@ -34,8 +34,8 @@ def poll_and_run():
         # error
         if result is None:
             checkin(
-                status="warnings",
-                error="could not load scann data"
+                status="warning",
+                error = "could not load scan data for request #{req_id}"
             )
             continue
 
