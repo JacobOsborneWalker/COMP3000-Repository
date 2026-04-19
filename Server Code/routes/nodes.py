@@ -118,6 +118,32 @@ def get_node_detail(node_id):
     })
 
 
+# pi poll endpoint
+# no api key check - matches the same open pattern as the checkin endpoint
+@nodes_bp.route("/nodes/<string:node_uid>/poll", methods=["GET"])
+def poll_approved_scans(node_uid):
+    node = Node.query.filter_by(node_uid=node_uid).first_or_404()
+
+    all_approved = ScanRequest.query.filter_by(status="approved").all()
+    waiting = [
+        r for r in all_approved
+        if node_uid in (r.node_uids or "").split(",")
+        and len(r.results) == 0
+    ]
+
+    return jsonify({
+        "scans": [
+            {
+                "id":          r.id,
+                "scan_type":   r.scan_type,
+                "node_label":  node_uid,
+                "approved_by": r.approved_by.username if r.approved_by else None,
+            }
+            for r in waiting
+        ]
+    }), 200
+
+
 # pi check in endpoint
 @nodes_bp.route("/nodes/<string:node_uid>/checkin", methods=["POST"])
 def node_checkin(node_uid):
@@ -142,18 +168,13 @@ def node_checkin(node_uid):
 
 
 # pi result submission endpoint
-# authenticated by node_uid + api_key headers rather than JWT
+# no api key check - matches the same open pattern as checkin and poll
 @nodes_bp.route("/nodes/<string:node_uid>/result", methods=["POST"])
 def submit_node_result(node_uid):
     from models import ScanRequest, ScanResult, DetectedDevice, KnownDevice
     from datetime import datetime, timezone
 
     node = Node.query.filter_by(node_uid=node_uid).first_or_404()
-
-    # verify api key
-    api_key = request.headers.get("X-Api-Key", "")
-    if not api_key or not node.check_api_key(api_key):
-        return jsonify({"error": "invalid api key"}), 403
 
     data = request.get_json() or {}
     req_id = data.get("scan_request_id")

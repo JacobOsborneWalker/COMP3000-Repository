@@ -37,8 +37,8 @@ def get_results():
 def get_result_detail(result_id):
     r = ScanResult.query.get_or_404(result_id)
 
-    
     known_macs = {d.mac.upper(): d.label for d in KnownDevice.query.all()}
+    known_mac_set = set(known_macs.keys())
 
     devices = []
     for d in r.devices:
@@ -59,9 +59,31 @@ def get_result_detail(result_id):
             "ssid_history":     d.ssid_history.split(",") if d.ssid_history else [],
             "associated_bssid": d.associated_bssid,
             "deauth_count":     d.deauth_count,
-            "known":            mac_upper in known_macs,
+            "known":            mac_upper in known_mac_set,
             "label":            known_macs.get(mac_upper, None)
         })
+
+    live_suspicious = sum(
+        1 for d in devices
+        if d.get("flags")
+        and d["mac"].upper() not in known_mac_set
+    )
+    live_rogue_ap = any(
+        d.get("flags") == "Rogue AP"
+        and d["mac"].upper() not in known_mac_set
+        for d in devices
+    )
+    live_total_deauth = sum(
+        d.get("deauth_count") or 0
+        for d in devices
+        if d["mac"].upper() not in known_mac_set
+    )
+    live_unknown_assoc = sum(
+        1 for d in devices
+        if d.get("associated_bssid")
+        and d["associated_bssid"].upper() not in known_mac_set
+        and d["mac"].upper() not in known_mac_set
+    )
 
     return jsonify({
         "metadata": {
@@ -77,11 +99,11 @@ def get_result_detail(result_id):
         "devices": devices,
         "summary": {
             "total_devices":        r.total_devices,
-            "suspicious":           r.suspicious,
-            "rogue_ap":             r.rogue_ap,
+            "suspicious":           live_suspicious,
+            "rogue_ap":             live_rogue_ap,
             "bandwidth":            r.bandwidth,
-            "total_deauth_frames":  r.total_deauth_frames,
-            "unknown_associations": r.unknown_associations
+            "total_deauth_frames":  live_total_deauth,
+            "unknown_associations": live_unknown_assoc
         }
     })
 
@@ -107,7 +129,7 @@ def submit_result():
     )
 
     db.session.add(result)
-    db.session.flush()  
+    db.session.flush()
 
     for d in detected:
         time_seen = None

@@ -28,10 +28,10 @@ with app.app_context():
     # users
     users = {}
     for username, role, password in [
-        ("Peter",  "admin",      "Admin123!@#"),
-        ("Hiro",   "technician", "Tech123!@#!"),
-        ("Claire", "safeguard",  "Safe123!@#!"),
-        ("Matt",   "auditor",    "Audit123!@#"),
+        ("Chris",  "admin",      "Admin123!@#"),
+        ("Ben",   "technician", "Tech123!@#!"),
+        ("Dan", "safeguard",  "Safe123!@#!"),
+        ("Talo",   "auditor",    "Audit123!@#"),
     ]:
         u = User(role=role)
         u.username = username
@@ -60,7 +60,7 @@ with app.app_context():
             network      = nd["network"],
             status       = nd["status"],
             last_checkin = datetime.now(timezone.utc),
-            added_by     = users["Peter"]
+            added_by     = users["Chris"]
         )
         n.set_api_key(plain_key)
         db.session.add(n)
@@ -71,10 +71,10 @@ with app.app_context():
     print()
     print("Credentials:")
     for username, role, password in [
-        ("Peter",  "admin",      "Admin123!@#"),
-        ("Hiro",   "technician", "Tech123!@#!"),
-        ("Claire", "safeguard",  "Safe123!@#!"),
-        ("Matt",   "auditor",    "Audit123!@#"),
+        ("Chris",  "admin",      "Admin123!@#"),
+        ("Ben",   "technician", "Tech123!@#!"),
+        ("Dan", "safeguard",  "Safe123!@#!"),
+        ("Talo",   "auditor",    "Audit123!@#"),
     ]:
         print(f"  {role:<12} {username} / {password}")
     print()

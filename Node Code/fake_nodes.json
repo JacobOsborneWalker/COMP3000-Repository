@@ -1,29 +1,29 @@
 [
   {
-    "node_uid": "SCAN-001",
-    "site":     "Main Building",
-    "area":     "Reception",
+    "node_uid": "Test Laptop",
+    "site":     "Plymouth Uni",
+    "area":     "Computer Room",
     "network":  "192.168.1.0/24",
     "status":   "online"
   },
   {
-    "node_uid": "SCAN-002",
-    "site":     "Main Building",
-    "area":     "Server Room",
+    "node_uid": "Pi-A",
+    "site":     "Sevenoaks",
+    "area":     "Garden Office",
     "network":  "192.168.1.0/24",
     "status":   "warning"
   },
   {
-    "node_uid": "SCAN-003",
-    "site":     "Sports Hall",
-    "area":     "Main Hall",
+    "node_uid": "Pi-B",
+    "site":     "Sevenoaks",
+    "area":     "Living Room",
     "network":  "192.168.2.0/24",
     "status":   "online"
   },
   {
-    "node_uid": "SCAN-004",
-    "site":     "Annex Block",
-    "area":     "Ground Floor",
+    "node_uid": "Pi-C",
+    "site":     "Accomodation Building",
+    "area":     "Main Rom",
     "network":  "192.168.3.0/24",
     "status":   "offline"
   }
