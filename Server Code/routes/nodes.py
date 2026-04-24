@@ -4,7 +4,8 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
 from models import db, Node, NodeAlert, NodeError, ScanRequest, ScanResult, DetectedDevice, KnownDevice
 from auth_middleware import require_roles
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
 
 nodes_bp = Blueprint("nodes", __name__)
 
@@ -255,15 +256,29 @@ def resolve_alert(alert_id):
     return jsonify({"message": "Alert resolved"})
 
 
+
+_OFFLINE_THRESHOLD = timedelta(minutes=3)
+
 def _node_summary(n):
     unresolved_alerts = [a for a in n.alerts if not a.resolved]
+
+    if n.last_checkin is None:
+        effective_status = "offline"
+    else:
+        last_checkin_utc = n.last_checkin.replace(tzinfo=timezone.utc)
+        time_since = datetime.now(timezone.utc) - last_checkin_utc
+        if time_since > _OFFLINE_THRESHOLD:
+            effective_status = "offline"
+        else:
+            effective_status = n.status
+
     return {
         "id":           n.id,
         "node_uid":     n.node_uid,
         "site":         n.site,
         "area":         n.area,
         "network":      n.network,
-        "status":       n.status,
+        "status":       effective_status,
         "last_checkin": n.last_checkin.isoformat() if n.last_checkin else None,
         "alert_count":  len(unresolved_alerts),
         "alerts":       [{"id": a.id, "message": a.message} for a in unresolved_alerts]

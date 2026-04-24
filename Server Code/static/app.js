@@ -1487,10 +1487,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-    // -------------------------------------------------------------------------
     // admin page
-    // -------------------------------------------------------------------------
-
     function loadAdminPage() {
         apiFetch("/known-devices").then(resp => {
             if (resp.status !== 200) {
@@ -1542,6 +1539,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
+
+    // add known device
     function addKnownDevice() {
         const mac   = document.getElementById("newDeviceMAC").value.trim().toUpperCase();
         const label = document.getElementById("newDeviceLabel").value.trim();
@@ -1589,10 +1588,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // -------------------------------------------------------------------------
-    // nodes page
-    // -------------------------------------------------------------------------
-
+    // loads nodes page
     function loadNodesPage() {
         const btnReg = document.getElementById("btnRegisterNode");
         if (btnReg) {
@@ -1677,6 +1673,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+
+    // load node details
     function loadNodeDetail(nodeId, uid, site, area) {
         const panel = document.getElementById("nodeDetailPanel");
         document.getElementById("nodeDetailTitle").textContent = `${uid} - ${site} / ${area}`;
@@ -1699,7 +1697,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const d = resp.data;
 
-            // recent (approved) scans
+            // recent approved scans
             const scansTbody = clearTable("#nodeScansTable tbody");
             if (d.recent_scans.length === 0) {
                 emptyRow(scansTbody, 5, "No completed scans yet");
@@ -1712,6 +1710,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (s.result_id) {
                         actionCell.appendChild(btn("View Results", "primary-btn", () => {
                             showPage("results");
+
                             // wait for the results page to load then select this scan
                             apiFetch("/results").then(resp => {
                                 if (resp.status !== 200) {
@@ -1719,6 +1718,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 }
                                 populateScanSelect(resp.data);
                                 displayScanResults(s.result_id);
+
                                 // set the dropdown to match
                                 const sel = document.getElementById("scanSelect");
                                 if (sel) {
@@ -1840,6 +1840,11 @@ document.addEventListener("DOMContentLoaded", () => {
         btnReg.addEventListener("click", toggleRegisterForm);
     }
 
+    const btnRefresh = document.getElementById("btnRefreshNodes");
+    if (btnRefresh) {
+        btnRefresh.addEventListener("click", loadNodesPage);
+    }
+
     window.registerNode    = registerNode;
     window.closeNodeDetail = () => {
         document.getElementById("nodeDetailPanel").classList.add("hidden");
@@ -1847,10 +1852,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.toggleRegisterForm = toggleRegisterForm;
 
 
-    // -------------------------------------------------------------------------
     // password modal
-    // -------------------------------------------------------------------------
-
     function showPasswordModal(title, message, onConfirm) {
         const existing = document.getElementById("pwdModalOverlay");
         if (existing) {
