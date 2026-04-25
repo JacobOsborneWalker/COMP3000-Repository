@@ -20,8 +20,8 @@ from retention import start_retention_scheduler
 # create app
 app = Flask(
     __name__,
-    static_folder="static",
-    template_folder="templates"
+    static_folder="frontend",
+    template_folder="frontend"
 )
 
 app.config.from_object(Config)
