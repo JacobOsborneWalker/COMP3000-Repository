@@ -193,9 +193,9 @@ class DetectedDevice(db.Model):
     _vendor          = db.Column("vendor", db.String(512), nullable=True)
     signal           = db.Column(db.Integer,   nullable=True)
     channel          = db.Column(db.String(10), nullable=True)
-    time_seen        = db.Column(db.DateTime,   nullable=True)
-    first_seen       = db.Column(db.DateTime,   nullable=True)
-    last_seen        = db.Column(db.DateTime,   nullable=True)
+    time_first_seen  = db.Column(db.DateTime,   nullable=True)
+    time_last_seen   = db.Column(db.DateTime,   nullable=True)
+    time_seen_seconds = db.Column(db.Integer,   nullable=True)
     flags            = db.Column(db.String(255), nullable=True)
     frame_count      = db.Column(db.Integer,    nullable=True)
     signal_variance  = db.Column(db.Float,      nullable=True)
@@ -228,9 +228,9 @@ class DetectedDevice(db.Model):
             "vendor":           self.vendor,
             "signal":           self.signal,
             "channel":          self.channel,
-            "time_seen":        self.time_seen.isoformat() if self.time_seen else None,
-            "first_seen":       self.first_seen.isoformat() if self.first_seen else None,
-            "last_seen":        self.last_seen.isoformat() if self.last_seen else None,
+            "time_first_seen":  self.time_first_seen.isoformat() if self.time_first_seen else None,
+            "time_last_seen":   self.time_last_seen.isoformat()  if self.time_last_seen  else None,
+            "time_seen_seconds": self.time_seen_seconds,
             "flags":            self.flags,
             "frame_count":      self.frame_count,
             "signal_variance":  self.signal_variance,

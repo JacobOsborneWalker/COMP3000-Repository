@@ -1,0 +1,32 @@
+[
+  {
+    "username": "Chris",
+    "role": "admin",
+    "password": "Admin123!@#"
+  },
+    {
+    "username": "Jake",
+    "role": "admin",
+    "password": "NewAdmin123"
+  },
+    {
+    "username": "Dan",
+    "role": "safeguard",
+    "password": "Safe123!@#!"
+  },
+  {
+    "username": "Ben",
+    "role": "technician",
+    "password": "Tech123!@#!"
+  },
+  {
+    "username": "Joe",
+    "role": "safeguard",
+    "password": "NewSafe123!@#!"
+  },
+  {
+    "username": "Talo",
+    "role": "auditor",
+    "password": "Audit123!@#"
+  }
+]

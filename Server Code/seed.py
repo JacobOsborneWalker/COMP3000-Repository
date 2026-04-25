@@ -3,17 +3,15 @@
 import json
 import os
 import secrets
+import sys
 from app import app
-from models import db, User, ScanRequest, KnownDevice, Node, ScanResult, DetectedDevice
+from models import db, User, KnownDevice, Node
 from datetime import datetime, timezone
 
-# paths 
-BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
-NODE_CODE_DIR  = os.path.join(BASE_DIR, "..", "Node Code")
-
-FAKE_NODES_PATH         = os.path.join(NODE_CODE_DIR, "fake_nodes.json")
-FAKE_RESULTS_PATH       = os.path.join(NODE_CODE_DIR, "fake_results.json")
-KNOWN_DEVICES_PATH      = os.path.join(BASE_DIR, "known_devices.json")
+BASE_DIR           = os.path.dirname(os.path.abspath(__file__))
+USERS_PATH         = os.path.join(BASE_DIR, "users.json")
+NODES_PATH         = os.path.join(BASE_DIR, "nodes.json")
+KNOWN_DEVICES_PATH = os.path.join(BASE_DIR, "known_devices.json")
 
 
 def load_json(path):
@@ -21,18 +19,29 @@ def load_json(path):
         return json.load(f)
 
 
+# pre-flight checks
+if not os.path.exists(USERS_PATH):
+    print(f"ERROR: {USERS_PATH} not found.")
+    print("Create a users.json file before seeding. See users.json.example for the format.")
+    sys.exit(1)
+
+if not os.path.exists(NODES_PATH):
+    print(f"ERROR: {NODES_PATH} not found.")
+    sys.exit(1)
+
+
 with app.app_context():
     db.drop_all()
     db.create_all()
 
-    # users
+    # users - loaded from users.json
+    user_data = load_json(USERS_PATH)
     users = {}
-    for username, role, password in [
-        ("Chris",  "admin",      "Admin123!@#"),
-        ("Ben",   "technician", "Tech123!@#!"),
-        ("Dan", "safeguard",  "Safe123!@#!"),
-        ("Talo",   "auditor",    "Audit123!@#"),
-    ]:
+    for entry in user_data:
+        username = entry["username"]
+        role     = entry["role"]
+        password = entry["password"]
+
         u = User(role=role)
         u.username = username
         u.set_password(password)
@@ -41,26 +50,33 @@ with app.app_context():
 
     db.session.flush()
 
-    # known devices 
+    # known devices
     for kd in load_json(KNOWN_DEVICES_PATH):
-        d = KnownDevice(added_by=users[kd["added_by"]])
+        added_by_name = kd["added_by"]
+        d = KnownDevice(added_by=users[added_by_name])
         d.mac   = kd["mac"]
         d.label = kd["label"]
         db.session.add(d)
 
-    # nodes 
+    # nodes - API keys generated fresh on every seed
     node_keys = {}
-    for nd in load_json(FAKE_NODES_PATH):
+    for nd in load_json(NODES_PATH):
         plain_key = secrets.token_hex(32)
         node_keys[nd["node_uid"]] = plain_key
+
+        admin_name = nd.get("added_by") or next(
+            (name for name, u in users.items() if u.role == "admin"), None
+        )
+        added_by = users.get(admin_name)
+
         n = Node(
             node_uid     = nd["node_uid"],
             site         = nd["site"],
             area         = nd["area"],
             network      = nd["network"],
-            status       = nd["status"],
+            status       = nd.get("status", "offline"),
             last_checkin = datetime.now(timezone.utc),
-            added_by     = users["Chris"]
+            added_by     = added_by,
         )
         n.set_api_key(plain_key)
         db.session.add(n)
@@ -69,15 +85,12 @@ with app.app_context():
 
     print("Database seeded successfully.")
     print()
-    print("Credentials:")
-    for username, role, password in [
-        ("Chris",  "admin",      "Admin123!@#"),
-        ("Ben",   "technician", "Tech123!@#!"),
-        ("Dan", "safeguard",  "Safe123!@#!"),
-        ("Talo",   "auditor",    "Audit123!@#"),
-    ]:
-        print(f"  {role:<12} {username} / {password}")
+    print("Users created:")
+    for entry in user_data:
+        print(f"  {entry['role']:<12} {entry['username']}")
     print()
-    print("Node API keys:")
+    print("Scanner API keys (save the keys. these keys cannot be recovered):")
     for uid, key in node_keys.items():
         print(f"  {uid}: {key}")
+    print()
+    print("IMPORTANT: delete users.json now that seeding is complete.")
