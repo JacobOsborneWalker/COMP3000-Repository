@@ -1,4 +1,4 @@
-# pi uploader.py - packages completed scan results and uploads them 
+# pi_uploader.py - packages completed scan results and uploads them to the server
 
 import logging
 from datetime import datetime, timezone
@@ -8,7 +8,7 @@ from pi_config import SCANNER_UID
 
 log = logging.getLogger(__name__)
 
-# upload scan
+# upload the scan results
 def upload_scan(scan_request_id: str, node_label: str, scan_result: dict) -> bool:
 
     if not scan_result:
@@ -22,22 +22,21 @@ def upload_scan(scan_request_id: str, node_label: str, scan_result: dict) -> boo
     if not devices:
         log.warning("no devices in result for request %s – uploading empty payload", scan_request_id)
 
-   # enrich devices 
     now = datetime.now(timezone.utc).isoformat()
     enriched = []
     for dev in devices:
         d = dict(dev)
 
-        # time seen
+        # ensure every device has a time_seen
         if not d.get("time_seen"):
             d["time_seen"] = now
 
-        # flag field to string
+        # normalise flag field to a string
         if d.get("flags") is None:
             d["flags"] = ""
         enriched.append(d)
 
-    # summary content 
+    # build summary count
 
     total      = len(enriched)
     suspicious = sum(1 for d in enriched if "Suspicious" in (d.get("flags") or ""))
@@ -49,7 +48,7 @@ def upload_scan(scan_request_id: str, node_label: str, scan_result: dict) -> boo
         scan_request_id, scan_type, bandwidth, total, suspicious, rogue_ap
     )
 
-    # upload 
+    # attempt upload
 
     try:
         success = submit_results(
@@ -59,13 +58,17 @@ def upload_scan(scan_request_id: str, node_label: str, scan_result: dict) -> boo
             devices         = enriched,
             bandwidth       = bandwidth,
         )
+    # error with results
     except Exception as e:
         log.error("unexpected error during upload for request %s: %s", scan_request_id, e)
         checkin(status="warning", error=f"upload exception: {e}")
         return False
 
+    #success uplaod
     if success:
         _log_summary(scan_request_id, scan_type, total, suspicious, rogue_ap, open_nets)
+    
+    # error uploading
     else:
         log.warning("upload failed for request %s", scan_request_id)
         checkin(status="warning", error=f"result upload failed for {scan_request_id}")
@@ -73,7 +76,8 @@ def upload_scan(scan_request_id: str, node_label: str, scan_result: dict) -> boo
     return success
 
 
-# logg smmary 
+
+# log the summaery 
 def _log_summary(req_id, scan_type, total, suspicious, rogue_ap, open_nets):
     lines = [
         f"upload ok | request={req_id}",

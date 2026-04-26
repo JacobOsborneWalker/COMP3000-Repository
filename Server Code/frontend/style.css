@@ -512,3 +512,18 @@ td.flag-danger {
     border-color: var(--primary);
     font-weight: 600;
 }
+/* in-progress scan rows on the activity page */
+tr.row-in-progress td {
+    background: #eaf4fb;
+}
+
+tr.row-in-progress:hover td {
+    background: #d6eaf8;
+}
+
+/* countdown cell on scheduled table */
+.countdown-cell {
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+    font-weight: 600;
+}

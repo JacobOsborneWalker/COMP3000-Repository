@@ -112,6 +112,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return str.slice(0, 16).replace("T", " ");
     }
 
+    // format a duration in seconds to a readable string e.g. "2m 34s"
+    function fmtDuration(seconds) {
+        if (seconds == null || seconds === 0) {
+            return "N/A";
+        }
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        if (m > 0) {
+            return m + "m " + s + "s";
+        }
+        return s + "s";
+    }
+
 
     // api
 
@@ -1199,7 +1212,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const devicesTable = document.getElementById("devicesTable");
             const devicesTbody = clearTable("#devicesTable tbody");
 
-            const baseHeaders = ["MAC", "Vendor", "Signal (dBm)", "Channel", "Time Seen", "Flags", "Status"];
+            const baseHeaders = ["MAC", "Vendor", "Signal (dBm)", "Channel", "First Seen", "Last Seen", "Total Time Seen", "Flags", "Status"];
             const richHeaders  = ["Frame Count", "Signal Variance", "Beacon Interval", "Probe SSIDs", "SSID History", "Associated BSSID", "Deauth Frames"];
 
             let headers;
@@ -1229,7 +1242,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     const tr = addRow(devicesTbody, [
                         d.mac, d.vendor, d.signal, d.channel,
-                        fmtDate(d.time_seen), flagsText
+                        fmtDate(d.first_seen), fmtDate(d.last_seen),
+                        fmtDuration(d.total_time_seen), flagsText
                     ]);
 
                     if (!d.known) {
@@ -1427,13 +1441,27 @@ document.addEventListener("DOMContentLoaded", () => {
             "Request ID,Requested By,Approved By,Network,Scan Type,Timestamp",
             `${m.id},${m.requested_by},${approvedBy},${m.network},${m.scan_type},${m.created_at}`,
             "",
-            "Device MAC,Vendor,Signal,Channel,Time Seen,Flags,Status",
+            "Device MAC,Vendor,Signal,Channel,First Seen,Last Seen,Total Time Seen,Flags,Status",
             ...d.devices.map(dev => {
-                let timeSeen;
-                if (dev.time_seen) {
-                    timeSeen = dev.time_seen;
+                let firstSeen;
+                if (dev.first_seen) {
+                    firstSeen = dev.first_seen;
                 } else {
-                    timeSeen = "";
+                    firstSeen = "";
+                }
+
+                let lastSeen;
+                if (dev.last_seen) {
+                    lastSeen = dev.last_seen;
+                } else {
+                    lastSeen = "";
+                }
+
+                let totalTime;
+                if (dev.total_time_seen != null) {
+                    totalTime = dev.total_time_seen + "s";
+                } else {
+                    totalTime = "";
                 }
 
                 let flags;
@@ -1450,7 +1478,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     knownStatus = "Unknown";
                 }
 
-                return `${dev.mac},${dev.vendor},${dev.signal},${dev.channel},${timeSeen},${flags},${knownStatus}`;
+                return `${dev.mac},${dev.vendor},${dev.signal},${dev.channel},${firstSeen},${lastSeen},${totalTime},${flags},${knownStatus}`;
             }),
             "",
             "Total Devices,Suspicious,Rogue AP,Bandwidth",
@@ -1487,7 +1515,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
+    // -------------------------------------------------------------------------
     // admin page
+    // -------------------------------------------------------------------------
+
     function loadAdminPage() {
         apiFetch("/known-devices").then(resp => {
             if (resp.status !== 200) {
@@ -1539,8 +1570,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
-
-    // add known device
     function addKnownDevice() {
         const mac   = document.getElementById("newDeviceMAC").value.trim().toUpperCase();
         const label = document.getElementById("newDeviceLabel").value.trim();
@@ -1588,7 +1617,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // loads nodes page
+    // -------------------------------------------------------------------------
+    // nodes page
+    // -------------------------------------------------------------------------
+
     function loadNodesPage() {
         const btnReg = document.getElementById("btnRegisterNode");
         if (btnReg) {
@@ -1673,8 +1705,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-    // load node details
     function loadNodeDetail(nodeId, uid, site, area) {
         const panel = document.getElementById("nodeDetailPanel");
         document.getElementById("nodeDetailTitle").textContent = `${uid} - ${site} / ${area}`;
@@ -1697,7 +1727,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const d = resp.data;
 
-            // recent approved scans
+            // recent (approved) scans
             const scansTbody = clearTable("#nodeScansTable tbody");
             if (d.recent_scans.length === 0) {
                 emptyRow(scansTbody, 5, "No completed scans yet");
@@ -1710,7 +1740,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (s.result_id) {
                         actionCell.appendChild(btn("View Results", "primary-btn", () => {
                             showPage("results");
-
                             // wait for the results page to load then select this scan
                             apiFetch("/results").then(resp => {
                                 if (resp.status !== 200) {
@@ -1718,7 +1747,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                 }
                                 populateScanSelect(resp.data);
                                 displayScanResults(s.result_id);
-
                                 // set the dropdown to match
                                 const sel = document.getElementById("scanSelect");
                                 if (sel) {
@@ -1845,6 +1873,11 @@ document.addEventListener("DOMContentLoaded", () => {
         btnRefresh.addEventListener("click", loadNodesPage);
     }
 
+    const btnRefreshActivity = document.getElementById("btnRefreshActivity");
+    if (btnRefreshActivity) {
+        btnRefreshActivity.addEventListener("click", loadActivityPage);
+    }
+
     window.registerNode    = registerNode;
     window.closeNodeDetail = () => {
         document.getElementById("nodeDetailPanel").classList.add("hidden");
@@ -1852,7 +1885,10 @@ document.addEventListener("DOMContentLoaded", () => {
     window.toggleRegisterForm = toggleRegisterForm;
 
 
+    // -------------------------------------------------------------------------
     // password modal
+    // -------------------------------------------------------------------------
+
     function showPasswordModal(title, message, onConfirm) {
         const existing = document.getElementById("pwdModalOverlay");
         if (existing) {

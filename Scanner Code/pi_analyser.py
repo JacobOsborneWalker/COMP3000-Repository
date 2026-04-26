@@ -6,31 +6,30 @@ from collections import defaultdict
 log = logging.getLogger(__name__)
 
 
-## threshhold
 # number of distinct probe SSIDs 
 PROBE_COUNT_THRESHOLD = 5
 
-# signal variance 
-# potentially spoofed
+# signal variance above which a device is considered unstable or potentially spoofed
 SIGNAL_VARIANCE_THRESHOLD = 10.0
 
-# beacon interval 
+# beacon interval  that legitimate APs should use anything outside 95–105 is non standard
 BEACON_INTERVAL_EXPECTED = 100
-BEACON_INTERVAL_TOLERANCE = 20    
+BEACON_INTERVAL_TOLERANCE = 20     # ± ms
 
-# number of distinct SSIDs advertised from one MAC 
+# number of SIDs from one MAC thats suspicious
 MULTI_SSID_THRESHOLD = 2
 
-# number of deauth frames received before being flagged
+# number of suspicious deauth frames 
 DEAUTH_THRESHOLD = 5
 
 
+# entry point
 
 def analyse_devices(devices: list[dict], scan_type: str = "Deep Passive") -> list[dict]:
 
     log.info("analysing %d devices (%s)", len(devices), scan_type)
 
-
+    # build lookup tables used by cross-device checks
     known_ap_bssids  = _known_ap_map(devices)   
     flagged_bssids   = _flagged_bssids(devices)  
 
@@ -55,10 +54,9 @@ def analyse_devices(devices: list[dict], scan_type: str = "Deep Passive") -> lis
     return devices
 
 
-
-# check probe SSID
+# probing many SSIDs?
 def _check_probe_ssids(dev: dict) -> set[str]:
- 
+
     probes = dev.get("probe_ssids") or []
     if len(probes) >= PROBE_COUNT_THRESHOLD:
         log.debug("%s flagged: %d probe SSIDs", dev.get("mac"), len(probes))
@@ -66,9 +64,9 @@ def _check_probe_ssids(dev: dict) -> set[str]:
     return set()
 
 
-# check signal variance
+# high signal variance?
 def _check_signal_variance(dev: dict) -> set[str]:
- 
+
     var = dev.get("signal_variance")
     if var is not None and var > SIGNAL_VARIANCE_THRESHOLD:
         log.debug("%s flagged: signal variance %.1f", dev.get("mac"), var)
@@ -76,9 +74,8 @@ def _check_signal_variance(dev: dict) -> set[str]:
     return set()
 
 
-# check beacon intervals
+# are the beacon intervals suspicisou
 def _check_beacon_interval(dev: dict) -> set[str]:
-
     bi = dev.get("beacon_interval")
     if bi is None:
         return set()
@@ -91,7 +88,7 @@ def _check_beacon_interval(dev: dict) -> set[str]:
 
 # check multiple SSIDs
 def _check_multi_ssid(dev: dict) -> set[str]:
- 
+
     history = dev.get("ssid_history") or []
     unique  = len(set(history))
     if unique >= MULTI_SSID_THRESHOLD:
@@ -100,9 +97,8 @@ def _check_multi_ssid(dev: dict) -> set[str]:
     return set()
 
 
-# check associations
+# associated with flagged BSSID
 def _check_association(dev: dict, flagged_bssids: set[str]) -> set[str]:
-
     assoc = (dev.get("associated_bssid") or "").upper()
     if assoc and assoc in flagged_bssids:
         log.debug(
@@ -113,19 +109,18 @@ def _check_association(dev: dict, flagged_bssids: set[str]) -> set[str]:
     return set()
 
 
-# check deauths
+# deathentication frames
 def _check_deauths(dev: dict) -> set[str]:
-   
+
     count = dev.get("deauth_count") or 0
     if count >= DEAUTH_THRESHOLD:
         log.debug("%s flagged: %d deauths received", dev.get("mac"), count)
         return {"Suspicious"}
     return set()
 
-
-# check evil twins
+# flag devices with MAC addresses not a known bssid
 def _check_evil_twin(dev: dict, known_ap_bssids: dict[str, set[str]]) -> set[str]:
-
+  
     mac     = (dev.get("mac") or "").upper()
     history = set(dev.get("ssid_history") or [])
 
@@ -137,7 +132,7 @@ def _check_evil_twin(dev: dict, known_ap_bssids: dict[str, set[str]]) -> set[str
             continue
         if ssids & history:
 
-            # another =mac with same SSID 
+            # another MAC with the same SSID
             log.warning(
                 "evil twin suspected: %s and %s both advertise %s",
                 mac, bssid, ssids & history
@@ -146,7 +141,7 @@ def _check_evil_twin(dev: dict, known_ap_bssids: dict[str, set[str]]) -> set[str
     return set()
 
 
-
+# knowwn ap map
 def _known_ap_map(devices: list[dict]) -> dict[str, set[str]]:
     ap_map: dict[str, set[str]] = defaultdict(set)
     for dev in devices:
@@ -156,7 +151,7 @@ def _known_ap_map(devices: list[dict]) -> dict[str, set[str]]:
             ap_map[mac].update(history)
     return dict(ap_map)
 
-
+# return BSSIDs that dont have empty flag lists
 def _flagged_bssids(devices: list[dict]) -> set[str]:
     return {
         (dev.get("mac") or "").upper()
@@ -164,13 +159,13 @@ def _flagged_bssids(devices: list[dict]) -> set[str]:
         if dev.get("flags")
     }
 
-
+# convert to list
 def _split_flags(flags_str: str) -> list[str]:
     return [f.strip() for f in flags_str.split(",") if f.strip()]
 
-
+# join the flags
 def _join_flags(flags: set[str]) -> str:
-
+    # Rogue AP is more supcisious
     ordered = []
     if "Rogue AP" in flags:
         ordered.append("Rogue AP")
@@ -179,7 +174,7 @@ def _join_flags(flags: set[str]) -> str:
     others = sorted(flags - {"Rogue AP", "Suspicious"})
     return ", ".join(ordered + others)
 
-
+# overall summary
 def _build_summary(devices: list[dict]) -> dict:
     suspicious = sum(1 for d in devices if "Suspicious" in (d.get("flags") or ""))
     rogue_ap   = sum(1 for d in devices if "Rogue AP"   in (d.get("flags") or ""))

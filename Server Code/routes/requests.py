@@ -1,21 +1,22 @@
-## requests - scan request creation, listing, approval and decline
+##requests - scan request creation, listing, approval and decline
 
 import json
 import random
 import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
-from models import db, User, ScanRequest, ScanResult, DetectedDevice, KnownDevice, Node
+from models import db, User, ScanRequest, ScanResult, DetectedDevice, KnownDevice
 from auth_middleware import require_roles
 from datetime import datetime
 
 requests_bp = Blueprint("requests", __name__)
 
-FAKE_RESULTS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Node Code", "fake_results.json")
+# current results stand in for Pi
+RESULTS_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Node Code", "results.json")
 
 
-def _load_fake_results():
-    with open(FAKE_RESULTS_PATH, "r") as f:
+def _load_results():
+    with open(RESULTS_PATH, "r") as f:
         return json.load(f)
 
 
@@ -28,7 +29,7 @@ def _verify_password(user_id: int, password: str) -> bool:
 
 def _generate_result(scan_request, node_uid=None, node_label=None):
     """Generate one ScanResult for a single node."""
-    pool = _load_fake_results()
+    pool = _load_results()
     matching = [t for t in pool if t.get("scan_type") == scan_request.scan_type]
     template = random.choice(matching if matching else pool)
     now = datetime.utcnow()
@@ -95,16 +96,14 @@ def create_request():
     scan_type   = data.get("scan_type", "")
     notes       = data.get("notes", "").strip()
     password    = data.get("password", "")
-    node_uids   = data.get("node_uids", [])    # list of node UIDs
-    node_labels = data.get("node_labels", [])  # list of "site / area" strings
-    networks    = data.get("networks", [])      # list of networks (one per node)
+    node_uids   = data.get("node_uids", [])    
+    node_labels = data.get("node_labels", [])  
+    networks    = data.get("networks", [])     
 
-    # for single node submissions the frontend may send scalar values
     if isinstance(node_uids, str):   node_uids   = [node_uids]
     if isinstance(node_labels, str): node_labels = [node_labels]
     if isinstance(networks, str):    networks    = [networks]
 
-    # fall back to legacy single-network field
     if not networks and data.get("network"):
         networks = [data.get("network")]
 
@@ -127,7 +126,6 @@ def create_request():
         except ValueError:
             return jsonify({"error": "Invalid date format"}), 400
 
-    # store all nodes in a single request
     new_request = ScanRequest(
         scan_type    = scan_type,
         scheduled_at = scheduled_at,
@@ -136,7 +134,6 @@ def create_request():
         node_uids    = ",".join(node_uids)   if node_uids   else None,
         node_labels  = "|".join(node_labels) if node_labels else None,
     )
-    # store the first network as the primary network; all networks stored in node_uids context
     new_request.network = networks[0] if networks else ""
     new_request.notes   = notes or None
     db.session.add(new_request)
@@ -169,7 +166,7 @@ def get_requests():
     ])
 
 
-# approve request - checks scanner status before approving
+# approve requests
 @requests_bp.route("/requests/<int:req_id>/approve", methods=["POST"])
 @require_roles(["admin", "safeguard"])
 def approve_request(req_id):
@@ -191,30 +188,24 @@ def approve_request(req_id):
         if not _verify_password(user_id, password):
             return jsonify({"error": "Incorrect password"}), 403
 
-    # check every scanner assigned to this request is reachable
-    node_uids = scan_request.node_uids.split(",") if scan_request.node_uids else []
-    if node_uids:
-        offline = []
-        for uid in node_uids:
-            node = Node.query.filter_by(node_uid=uid.strip()).first()
-            if not node:
-                offline.append(f"{uid} (not found)")
-            elif node.status == "offline":
-                offline.append(f"{uid} ({node.site} / {node.area})")
-        if offline:
-            return jsonify({
-                "error": f"Cannot approve the following scanners are offline: {', '.join(offline)}"
-            }), 409
-
-    # mark as approved and let the Pi submit results when it polls
     scan_request.status         = "approved"
     scan_request.approved_by_id = user_id
+
+    # generate one result per node stored on the request
+    node_uids   = scan_request.node_uids.split(",")   if scan_request.node_uids   else [None]
+    node_labels = scan_request.node_labels.split("|") if scan_request.node_labels else [None]
+
+    result_ids = []
+    for i, uid in enumerate(node_uids):
+        label  = node_labels[i] if i < len(node_labels) else uid
+        result = _generate_result(scan_request, node_uid=uid, node_label=label)
+        result_ids.append(result.id)
+
     db.session.commit()
+    return jsonify({"message": f"Request {req_id} approved", "result_ids": result_ids})
 
-    return jsonify({"message": f"Request {req_id} approved — scanners will submit results shortly"})
 
-
-# decline request
+# decline requests
 @requests_bp.route("/requests/<int:req_id>/decline", methods=["POST"])
 @require_roles(["admin", "safeguard"])
 def decline_request(req_id):
@@ -232,8 +223,7 @@ def decline_request(req_id):
     db.session.commit()
     return jsonify({"message": f"Request {req_id} declined"})
 
-
-# cancel request
+# cancel requests
 @requests_bp.route("/requests/<int:req_id>/cancel", methods=["POST"])
 @require_roles()
 def cancel_request(req_id):

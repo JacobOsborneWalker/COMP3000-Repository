@@ -1,18 +1,17 @@
-# pi poller - checks for approved scan requests and runs them
+# pi_poller.py - checks for approved scan requests and runs them
 
 import logging
-from pi_client import get_approved_scans, checkin
+from pi_client import get_approved_scans, submit_results, checkin
 from pi_scanner import run_scan
-from pi_uploader import upload_scan
 from pi_config import SCANNER_UID
 
 log = logging.getLogger(__name__)
 
+# track processed request ids to prevent running the same scan twice
 processed = set()
 
 
 def poll_and_run():
-    # check for approved scans
     approved = get_approved_scans()
 
     if not approved:
@@ -38,11 +37,18 @@ def poll_and_run():
             )
             continue
 
-        success = upload_scan(
+        success = submit_results(
             scan_request_id = req_id,
+            node_uid        = SCANNER_UID,
             node_label      = node_label,
-            scan_result     = result,
+            devices         = result["devices"],
+            bandwidth       = result["bandwidth"],
         )
 
         if success:
             processed.add(req_id)
+        else:
+            checkin(
+                status="warning",
+                error=f"result upload failed for request {req_id}"
+            )

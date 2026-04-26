@@ -191,19 +191,19 @@ class DetectedDevice(db.Model):
     scan_result_id   = db.Column(db.Integer, db.ForeignKey("scan_results.id"), nullable=False)
     _mac             = db.Column("mac",    db.String(512), nullable=False)
     _vendor          = db.Column("vendor", db.String(512), nullable=True)
-    signal           = db.Column(db.Integer,   nullable=True)
-    channel          = db.Column(db.String(10), nullable=True)
-    time_first_seen  = db.Column(db.DateTime,   nullable=True)
-    time_last_seen   = db.Column(db.DateTime,   nullable=True)
-    time_seen_seconds = db.Column(db.Integer,   nullable=True)
-    flags            = db.Column(db.String(255), nullable=True)
-    frame_count      = db.Column(db.Integer,    nullable=True)
-    signal_variance  = db.Column(db.Float,      nullable=True)
-    beacon_interval  = db.Column(db.Integer,    nullable=True)
-    probe_ssids      = db.Column(db.Text,       nullable=True)  
-    ssid_history     = db.Column(db.Text,       nullable=True) 
-    associated_bssid = db.Column(db.String(50), nullable=True)
-    deauth_count     = db.Column(db.Integer,    default=0, nullable=True)
+    signal            = db.Column(db.Integer,    nullable=True)
+    channel           = db.Column(db.String(10), nullable=True)
+    time_first_seen   = db.Column(db.DateTime,   nullable=True)
+    time_last_seen    = db.Column(db.DateTime,   nullable=True)
+    time_seen_seconds = db.Column(db.Integer,    nullable=True)
+    flags             = db.Column(db.String(255), nullable=True)
+    frame_count       = db.Column(db.Integer,    nullable=True)
+    signal_variance   = db.Column(db.Float,      nullable=True)
+    beacon_interval   = db.Column(db.Integer,    nullable=True)
+    probe_count       = db.Column(db.Integer,    nullable=True)   # count only — actual SSID names not stored (UK GDPR)
+    ssid_history      = db.Column(db.Text,       nullable=True)
+    associated_bssid  = db.Column(db.String(50), nullable=True)
+    deauth_count      = db.Column(db.Integer,    default=0, nullable=True)
 
     @property
     def mac(self):
@@ -228,14 +228,14 @@ class DetectedDevice(db.Model):
             "vendor":           self.vendor,
             "signal":           self.signal,
             "channel":          self.channel,
-            "time_first_seen":  self.time_first_seen.isoformat() if self.time_first_seen else None,
-            "time_last_seen":   self.time_last_seen.isoformat()  if self.time_last_seen  else None,
+            "time_first_seen":  self.time_first_seen.isoformat()  if self.time_first_seen else None,
+            "time_last_seen":   self.time_last_seen.isoformat()   if self.time_last_seen  else None,
             "time_seen_seconds": self.time_seen_seconds,
             "flags":            self.flags,
             "frame_count":      self.frame_count,
             "signal_variance":  self.signal_variance,
             "beacon_interval":  self.beacon_interval,
-            "probe_ssids":      self.probe_ssids.split(",") if self.probe_ssids else [],
+            "probe_count":      self.probe_count,
             "ssid_history":     self.ssid_history.split(",") if self.ssid_history else [],
             "associated_bssid": self.associated_bssid,
             "deauth_count":     self.deauth_count,
