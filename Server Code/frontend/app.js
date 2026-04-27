@@ -112,19 +112,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return str.slice(0, 16).replace("T", " ");
     }
 
-    // format a duration in seconds to a readable string e.g. "2m 34s"
-    function fmtDuration(seconds) {
-        if (seconds == null || seconds === 0) {
-            return "N/A";
-        }
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        if (m > 0) {
-            return m + "m " + s + "s";
-        }
-        return s + "s";
-    }
-
 
     // api
 
@@ -1208,27 +1195,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 ]);
             }
 
-            // table 1 overview
-            const overviewTbody = clearTable("#devicesOverviewTable tbody");
+            // devices table - rebuild header based on scan type
+            const devicesTable = document.getElementById("devicesTable");
+            const devicesTbody = clearTable("#devicesTable tbody");
 
-            // table 2 timings
-            const timingTbody = clearTable("#devicesTimingTable tbody");
+            const baseHeaders = ["MAC", "Vendor", "Signal (dBm)", "Channel", "First Seen", "Flags", "Status"];
+            const richHeaders  = ["Last Seen", "Duration", "Frame Count", "Signal Variance", "Beacon Interval", "Probe Count", "SSID History", "Associated BSSID", "Deauth Frames"];
 
-            // table 3 behavior analysis 
-            const behaviourSection = document.getElementById("devicesBehaviourSection");
-            const behaviourTbody   = clearTable("#devicesBehaviourTable tbody");
-
-            if (behaviourSection) {
-                if (isRich) {
-                    behaviourSection.classList.remove("hidden");
-                } else {
-                    behaviourSection.classList.add("hidden");
-                }
+            let headers;
+            if (isRich) {
+                headers = [...baseHeaders, ...richHeaders];
+            } else {
+                headers = baseHeaders;
             }
 
-            if (overviewTbody && timingTbody) {
+            const thead = devicesTable.querySelector("thead");
+            thead.innerHTML = "";
+            const headerRow = thead.insertRow();
+            headers.forEach(h => {
+                const th = document.createElement("th");
+                th.textContent = h;
+                headerRow.appendChild(th);
+            });
+
+            if (devicesTbody) {
                 devices.forEach(d => {
-                    // overview row
                     let flagsText;
                     if (d.flags) {
                         flagsText = d.flags;
@@ -1236,26 +1227,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         flagsText = "None";
                     }
 
-                    const overviewRow = addRow(overviewTbody, [
-                        d.mac, d.vendor, d.signal, d.channel, flagsText
+                    const tr = addRow(devicesTbody, [
+                        d.mac, d.vendor, d.signal, d.channel,
+                        fmtDate(d.time_first_seen), flagsText
                     ]);
 
-                    // highlight unknown devices
                     if (!d.known) {
-                        overviewRow.classList.add("unknown-device");
+                        tr.classList.add("unknown-device");
                     }
 
-                    // flag cell colour
-                    if (d.flags) {
-                        const flagCell = overviewRow.cells[overviewRow.cells.length - 1];
-                        if (d.flags.includes("Rogue AP")) {
-                            flagCell.classList.add("flag-danger");
-                        } else if (d.flags.includes("Suspicious")) {
-                            flagCell.classList.add("flag-warning");
-                        }
-                    }
-
-                    // known / unknown badge
                     let badgeClass;
                     let badgeText;
                     if (d.known) {
@@ -1267,36 +1247,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     const badge = el("span", badgeClass);
                     badge.textContent = badgeText;
-                    overviewRow.insertCell().appendChild(badge);
+                    tr.insertCell().appendChild(badge);
 
-                    // timing row
-                    const timingRow = addRow(timingTbody, [
-                        d.mac,
-                        fmtDate(d.time_first_seen),
-                        fmtDate(d.time_last_seen),
-                        fmtDuration(d.time_seen_seconds)
-                    ]);
+                    if (isRich) {
+                        // last seen
+                        addCellText(tr, d.time_last_seen ? fmtDate(d.time_last_seen) : "N/A");
 
-                    if (!d.known) {
-                        timingRow.classList.add("unknown-device");
-                    }
-
-                    //  behavioural row 
-                    if (isRich && behaviourTbody) {
-                        const bRow = behaviourTbody.insertRow();
-
-                        if (!d.known) {
-                            bRow.classList.add("unknown-device");
+                        // duration
+                        const durCell = tr.insertCell();
+                        if (d.time_seen_seconds != null) {
+                            const mins = Math.floor(d.time_seen_seconds / 60);
+                            const secs = d.time_seen_seconds % 60;
+                            durCell.textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                        } else {
+                            durCell.textContent = "N/A";
                         }
 
-                        // MAC
-                        bRow.insertCell().textContent = d.mac;
+                        let frameCountText;
+                        if (d.frame_count != null) {
+                            frameCountText = d.frame_count;
+                        } else {
+                            frameCountText = "N/A";
+                        }
+                        addCellText(tr, frameCountText);
 
-                        // frame count
-                        bRow.insertCell().textContent = d.frame_count != null ? d.frame_count : "N/A";
-
-                        // signal variance
-                        const varCell = bRow.insertCell();
+                        const varCell = tr.insertCell();
                         if (d.signal_variance != null) {
                             varCell.textContent = d.signal_variance.toFixed(1);
                             if (d.signal_variance > 10) {
@@ -1306,8 +1281,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             varCell.textContent = "N/A";
                         }
 
-                        // beacon interval
-                        const beaconCell = bRow.insertCell();
+                        const beaconCell = tr.insertCell();
                         if (d.beacon_interval != null) {
                             beaconCell.textContent = `${d.beacon_interval} ms`;
                             if (d.beacon_interval !== 100) {
@@ -1317,33 +1291,41 @@ document.addEventListener("DOMContentLoaded", () => {
                             beaconCell.textContent = "N/A";
                         }
 
-                        // probe SSIDs — count only stored 
-                        const probeCell = bRow.insertCell();
+                        const probeCell  = tr.insertCell();
                         const probeCount = d.probe_count || 0;
-                        if (probeCount > 0) {
-                            probeCell.textContent = `${probeCount} SSIDs`;
-                            probeCell.title = "Actual SSID names not stored (UK GDPR)";
-                        } else {
-                            probeCell.textContent = "None";
-                        }
+                        probeCell.textContent = probeCount > 0 ? `${probeCount} SSIDs` : "None";
                         if (probeCount >= 5) {
                             probeCell.classList.add("flag-warning");
                         }
 
-                        // SSID history
-                        const histCell = bRow.insertCell();
-                        if (d.ssid_history && d.ssid_history.length > 0) {
+                        const histCell  = tr.insertCell();
+                        let histCount;
+                        if (d.ssid_history) {
+                            histCount = d.ssid_history.length;
+                        } else {
+                            histCount = 0;
+                        }
+
+                        if (histCount > 0) {
                             histCell.textContent = d.ssid_history.join(", ");
                         } else {
                             histCell.textContent = "None";
                         }
 
-                        // associated BSSID
-                        bRow.insertCell().textContent = d.associated_bssid ? d.associated_bssid : "None";
+                        let associatedText;
+                        if (d.associated_bssid) {
+                            associatedText = d.associated_bssid;
+                        } else {
+                            associatedText = "None";
+                        }
+                        addCellText(tr, associatedText);
 
-                        // deauth frames
-                        const deauthCell = bRow.insertCell();
-                        deauthCell.textContent = d.deauth_count != null ? d.deauth_count : 0;
+                        const deauthCell = tr.insertCell();
+                        if (d.deauth_count != null) {
+                            deauthCell.textContent = d.deauth_count;
+                        } else {
+                            deauthCell.textContent = 0;
+                        }
                         if (d.deauth_count > 0) {
                             deauthCell.classList.add("flag-danger");
                         }
@@ -1436,40 +1418,17 @@ document.addEventListener("DOMContentLoaded", () => {
             approvedBy = "";
         }
 
-        // rows
         const rows = [
             "data:text/csv;charset=utf-8,",
             "Request ID,Requested By,Approved By,Network,Scan Type,Timestamp",
             `${m.id},${m.requested_by},${approvedBy},${m.network},${m.scan_type},${m.created_at}`,
             "",
-            "MAC,Vendor,Signal,Channel,Flags,Status,First Seen,Last Seen,Total Time Seen,Frame Count,Signal Variance,Beacon Interval,Probe SSID Count,Associated BSSID,Deauth Frames",
+            "Device MAC,Vendor,Signal,Channel,First Seen,Last Seen,Duration (s),Flags,Status",
             ...d.devices.map(dev => {
+                const firstSeen = dev.time_first_seen || "";
+                const lastSeen  = dev.time_last_seen  || "";
+                const duration  = dev.time_seen_seconds != null ? dev.time_seen_seconds : "";
 
-                // first seen
-                let firstSeen;
-                if (dev.time_first_seen) {
-                    firstSeen = dev.time_first_seen;
-                } else {
-                    firstSeen = "";
-                }
-
-                // last seen
-                let lastSeen;
-                if (dev.time_last_seen) {
-                    lastSeen = dev.time_last_seen;
-                } else {
-                    lastSeen = "";
-                }
-
-                // total time seen
-                let totalTime;
-                if (dev.time_seen_seconds != null) {
-                    totalTime = dev.time_seen_seconds + "s";
-                } else {
-                    totalTime = "";
-                }
-
-                // flags
                 let flags;
                 if (dev.flags) {
                     flags = dev.flags;
@@ -1477,64 +1436,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     flags = "";
                 }
 
-                // known status
                 let knownStatus;
                 if (dev.known) {
-                    knownStatus = `Known: ${dev.label}`;
+                    knownStatus = "Known";
                 } else {
                     knownStatus = "Unknown";
                 }
 
-                // frame count
-                let frameCount;
-                if (dev.frame_count != null) {
-                    frameCount = dev.frame_count;
-                } else {
-                    frameCount = "";
-                }
-                
-                // singal variance
-                let signalVar;
-                if (dev.signal_variance != null) {
-                    signalVar = dev.signal_variance;
-                } else {
-                    signalVar = "";
-                }
-
-
-                // beacon counts
-                let beaconInt;
-                if (dev.beacon_interval != null) {
-                    beaconInt = dev.beacon_interval + "ms";
-                } else {
-                    beaconInt = "";
-                }
-
-                // probe count
-                let probeCount;
-                if (dev.probe_count != null) {
-                    probeCount = dev.probe_count;
-                } else {
-                    probeCount = "";
-                }
-
-                // associated BSSIDs
-                let assocBssid;
-                if (dev.associated_bssid) {
-                    assocBssid = dev.associated_bssid;
-                } else {
-                    assocBssid = "";
-                }   
-
-                // deatuhentication frame count
-                let deauthCount;
-                if (dev.deauth_count != null) {
-                    deauthCount = dev.deauth_count;
-                } else {
-                    deauthCount = "";
-                }
-
-                return `${dev.mac},${dev.vendor},${dev.signal},${dev.channel},"${flags}",${knownStatus},${firstSeen},${lastSeen},${totalTime},${frameCount},${signalVar},${beaconInt},${probeCount},${assocBssid},${deauthCount}`;
+                return `${dev.mac},${dev.vendor},${dev.signal},${dev.channel},${firstSeen},${lastSeen},${duration},${flags},${knownStatus}`;
             }),
             "",
             "Total Devices,Suspicious,Rogue AP,Bandwidth",
@@ -1571,8 +1480,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-  
-    // load admin pages
+    // admin page
     function loadAdminPage() {
         apiFetch("/known-devices").then(resp => {
             if (resp.status !== 200) {
@@ -1582,8 +1490,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-    // render known devices
     function renderKnownDevices(devices) {
         const container = document.getElementById("knownDevicesSection");
         if (!container) {
@@ -1627,7 +1533,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // add known devices
+    // add known device
     function addKnownDevice() {
         const mac   = document.getElementById("newDeviceMAC").value.trim().toUpperCase();
         const label = document.getElementById("newDeviceLabel").value.trim();
@@ -1657,7 +1563,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // remove known devices
     function removeKnownDevice(id, label) {
         if (!confirm(`Remove "${label}" from known devices?`)) {
             return;
@@ -1676,7 +1581,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // load nodes page
+    // loads nodes page
     function loadNodesPage() {
         const btnReg = document.getElementById("btnRegisterNode");
         if (btnReg) {
@@ -1785,7 +1690,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const d = resp.data;
 
-            // recent (approved) scans
+            // recent approved scans
             const scansTbody = clearTable("#nodeScansTable tbody");
             if (d.recent_scans.length === 0) {
                 emptyRow(scansTbody, 5, "No completed scans yet");
@@ -1798,6 +1703,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (s.result_id) {
                         actionCell.appendChild(btn("View Results", "primary-btn", () => {
                             showPage("results");
+
                             // wait for the results page to load then select this scan
                             apiFetch("/results").then(resp => {
                                 if (resp.status !== 200) {
@@ -1805,6 +1711,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 }
                                 populateScanSelect(resp.data);
                                 displayScanResults(s.result_id);
+
                                 // set the dropdown to match
                                 const sel = document.getElementById("scanSelect");
                                 if (sel) {
@@ -1866,8 +1773,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-    // resolve alerts 
     function resolveAlert(alertId, nodeId) {
         apiFetch(`/nodes/alerts/${alertId}/resolve`, { method: "POST" }).then(resp => {
             if (resp.status !== 200) {
@@ -1892,8 +1797,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("registerNodeForm").classList.toggle("hidden");
     }
 
-
-    // register node
     function registerNode() {
         const site    = document.getElementById("nodeSite").value.trim();
         const area    = document.getElementById("nodeArea").value.trim();
@@ -1933,11 +1836,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnRefresh = document.getElementById("btnRefreshNodes");
     if (btnRefresh) {
         btnRefresh.addEventListener("click", loadNodesPage);
-    }
-
-    const btnRefreshActivity = document.getElementById("btnRefreshActivity");
-    if (btnRefreshActivity) {
-        btnRefreshActivity.addEventListener("click", loadActivityPage);
     }
 
     window.registerNode    = registerNode;
