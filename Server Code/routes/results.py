@@ -11,7 +11,6 @@ results_bp = Blueprint("results", __name__)
 @results_bp.route("/results", methods=["GET"])
 @require_roles()
 def get_results():
-    from models import ScanRequest
     requests = ScanRequest.query.filter(
         ScanRequest.status == "approved"
     ).order_by(ScanRequest.created_at.desc()).all()
@@ -37,32 +36,36 @@ def get_results():
 def get_result_detail(result_id):
     r = ScanResult.query.get_or_404(result_id)
 
-    known_macs = {d.mac.upper(): d.label for d in KnownDevice.query.all()}
+    known_macs    = {d.mac.upper(): d.label for d in KnownDevice.query.all()}
     known_mac_set = set(known_macs.keys())
 
     devices = []
     for d in r.devices:
         mac_upper = d.mac.upper()
         devices.append({
-            "mac":              d.mac,
-            "vendor":           d.vendor,
-            "signal":           d.signal,
-            "channel":          d.channel,
-            "time_seen":        d.time_seen.isoformat() if d.time_seen else None,
-            "first_seen":       d.first_seen.isoformat() if d.first_seen else None,
-            "last_seen":        d.last_seen.isoformat() if d.last_seen else None,
-            "flags":            d.flags,
-            "frame_count":      d.frame_count,
-            "signal_variance":  d.signal_variance,
-            "beacon_interval":  d.beacon_interval,
-            "probe_ssids":      d.probe_ssids.split(",") if d.probe_ssids else [],
-            "ssid_history":     d.ssid_history.split(",") if d.ssid_history else [],
-            "associated_bssid": d.associated_bssid,
-            "deauth_count":     d.deauth_count,
-            "known":            mac_upper in known_mac_set,
-            "label":            known_macs.get(mac_upper, None)
+            "mac":               d.mac,
+            "vendor":            d.vendor,
+            "signal":            d.signal,
+            "channel":           d.channel,
+            # new field names matching models.py
+            "time_first_seen":   d.time_first_seen.isoformat()  if d.time_first_seen  else None,
+            "time_last_seen":    d.time_last_seen.isoformat()   if d.time_last_seen   else None,
+            "time_seen_seconds": d.time_seen_seconds,
+            "flags":             d.flags,
+            "frame_count":       d.frame_count,
+            "signal_variance":   d.signal_variance,
+            "beacon_interval":   d.beacon_interval,
+            # probe_ssids no longer stored (UK GDPR) — count only
+            "probe_count":       d.probe_count or 0,
+            "ssid_history":      d.ssid_history.split(",") if d.ssid_history else [],
+            "associated_bssid":  d.associated_bssid,
+            "deauth_count":      d.deauth_count,
+            "known":             mac_upper in known_mac_set,
+            "label":             known_macs.get(mac_upper, None),
         })
 
+    # recalculate summary figures live so they always reflect the current
+    # known devices list rather than the values stored at scan time.
     live_suspicious = sum(
         1 for d in devices
         if d.get("flags")
@@ -94,7 +97,7 @@ def get_result_detail(result_id):
             "scan_type":    r.scan_request.scan_type,
             "requested_by": r.scan_request.requester.username,
             "approved_by":  r.scan_request.approved_by.username if r.scan_request.approved_by else None,
-            "created_at":   r.created_at.isoformat()
+            "created_at":   r.created_at.isoformat(),
         },
         "devices": devices,
         "summary": {
@@ -103,7 +106,7 @@ def get_result_detail(result_id):
             "rogue_ap":             live_rogue_ap,
             "bandwidth":            r.bandwidth,
             "total_deauth_frames":  live_total_deauth,
-            "unknown_associations": live_unknown_assoc
+            "unknown_associations": live_unknown_assoc,
         }
     })
 
@@ -114,10 +117,8 @@ def submit_result():
     data = request.get_json()
 
     scan_request = ScanRequest.query.get_or_404(data["scan_request_id"])
+    detected     = data.get("devices", [])
 
-    known_macs = {d.mac.upper() for d in KnownDevice.query.all()}
-
-    detected = data.get("devices", [])
     suspicious_count = sum(1 for d in detected if d.get("flags") and d["flags"] != "")
 
     result = ScanResult(
@@ -125,31 +126,25 @@ def submit_result():
         total_devices   = len(detected),
         suspicious      = suspicious_count,
         rogue_ap        = any(d.get("flags") == "Rogue AP" for d in detected),
-        bandwidth       = data.get("bandwidth", "Unknown")
+        bandwidth       = data.get("bandwidth", "Unknown"),
     )
-
     db.session.add(result)
     db.session.flush()
 
     for d in detected:
-        time_seen = None
-        if d.get("time_seen"):
-            try:
-                time_seen = datetime.fromisoformat(d["time_seen"])
-            except ValueError:
-                pass
-
         device = DetectedDevice(
-            scan_result_id = result.id,
-            mac            = d.get("mac", "").upper(),
-            vendor         = d.get("vendor", "Unknown"),
-            signal         = d.get("signal"),
-            channel        = d.get("channel"),
-            time_seen      = time_seen,
-            flags          = d.get("flags", "")
+            scan_result_id   = result.id,
+            signal           = d.get("signal"),
+            channel          = str(d.get("channel", "")),
+            time_first_seen  = None,
+            time_last_seen   = None,
+            time_seen_seconds = 0,
+            flags            = d.get("flags", ""),
+            probe_count      = len(d["probe_ssids"]) if d.get("probe_ssids") else 0,
         )
+        device.mac    = d.get("mac", "").upper()
+        device.vendor = d.get("vendor", "Unknown")
         db.session.add(device)
 
     db.session.commit()
-
     return jsonify({"message": "Result saved", "id": result.id}), 201

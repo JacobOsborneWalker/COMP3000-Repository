@@ -222,21 +222,24 @@ def submit_node_result(node_uid):
             except (ValueError, TypeError):
                 return now
 
+        time_first = _parse_dt(d.get("time_first_seen"))
+        time_last  = _parse_dt(d.get("time_last_seen"))
+
         device = DetectedDevice(
-            scan_result_id   = result.id,
-            signal           = d.get("signal"),
-            channel          = str(d.get("channel", "")),
-            time_seen        = _parse_dt(d.get("time_seen")),
-            first_seen       = _parse_dt(d.get("first_seen")),
-            last_seen        = _parse_dt(d.get("last_seen")),
-            flags            = d.get("flags", ""),
-            frame_count      = d.get("frame_count"),
-            signal_variance  = d.get("signal_variance"),
-            beacon_interval  = d.get("beacon_interval"),
-            probe_ssids      = ",".join(d["probe_ssids"]) if d.get("probe_ssids") else None,
-            ssid_history     = ",".join(d["ssid_history"]) if d.get("ssid_history") else None,
-            associated_bssid = d.get("associated_bssid"),
-            deauth_count     = d.get("deauth_count", 0),
+            scan_result_id    = result.id,
+            signal            = d.get("signal"),
+            channel           = str(d.get("channel", "")),
+            time_first_seen   = time_first,
+            time_last_seen    = time_last,
+            time_seen_seconds = d.get("time_seen_seconds") or max(int((time_last - time_first).total_seconds()), 0),
+            flags             = d.get("flags", ""),
+            frame_count       = d.get("frame_count"),
+            signal_variance   = d.get("signal_variance"),
+            beacon_interval   = d.get("beacon_interval"),
+            probe_count       = d.get("probe_count") or 0,
+            ssid_history      = ",".join(d["ssid_history"]) if d.get("ssid_history") else None,
+            associated_bssid  = d.get("associated_bssid"),
+            deauth_count      = d.get("deauth_count", 0),
         )
         device.mac    = d.get("mac", "").upper()
         device.vendor = d.get("vendor", "Unknown")

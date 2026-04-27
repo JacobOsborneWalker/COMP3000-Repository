@@ -27,9 +27,13 @@ def upload_scan(scan_request_id: str, node_label: str, scan_result: dict) -> boo
     for dev in devices:
         d = dict(dev)
 
-        # ensure every device has a time_seen
-        if not d.get("time_seen"):
-            d["time_seen"] = now
+        # ensure time fields are present — fall back to now if scanner didn't set them
+        if not d.get("time_first_seen"):
+            d["time_first_seen"] = now
+        if not d.get("time_last_seen"):
+            d["time_last_seen"] = now
+        if d.get("time_seen_seconds") is None:
+            d["time_seen_seconds"] = 0
 
         # normalise flag field to a string
         if d.get("flags") is None:

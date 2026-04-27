@@ -46,20 +46,22 @@ def _parse_passive(con: sqlite3.Connection) -> list[dict]:
         if blob is None:
             continue
 
-        mac      = blob.get("kismet.device.base.macaddr", "")
-        vendor   = blob.get("kismet.device.base.manuf", "Unknown")
-        signal   = _best_signal(blob)
-        channel  = _channel(blob)
-        enc      = _encryption_flags(blob)
-        time_seen = _last_time(blob)
+        mac             = blob.get("kismet.device.base.macaddr", "")
+        vendor          = blob.get("kismet.device.base.manuf", "Unknown")
+        signal          = _best_signal(blob)
+        channel         = _channel(blob)
+        enc             = _encryption_flags(blob)
+        time_first_seen = _first_time(blob) or _last_time(blob)
+        time_last_seen  = _last_time(blob)
 
         devices.append({
-            "mac":       mac,
-            "vendor":    vendor,
-            "signal":    signal,
-            "channel":   channel,
-            "time_seen": time_seen,
-            "flags":     enc,
+            "mac":             mac,
+            "vendor":          vendor,
+            "signal":          signal,
+            "channel":         channel,
+            "time_first_seen": time_first_seen,
+            "time_last_seen":  time_last_seen,
+            "flags":           enc,
         })
 
     log.debug("passive parse: %d devices", len(devices))
@@ -81,40 +83,48 @@ def _parse_deep(con: sqlite3.Connection) -> list[dict]:
         if blob is None:
             continue
 
-        mac            = blob.get("kismet.device.base.macaddr", "")
-        vendor         = blob.get("kismet.device.base.manuf", "Unknown")
-        signal         = _best_signal(blob)
-        channel        = _channel(blob)
-        enc            = _encryption_flags(blob)
-        time_seen      = _last_time(blob)
-        first_seen     = _first_time(blob)
-        last_seen      = time_seen
-        frame_count    = blob.get("kismet.device.base.packets.total", 0)
-        signal_var     = _signal_variance(blob)
-        beacon_int     = _beacon_interval(blob)
-        ssid_history   = _ssid_history(blob)
-        probe_ssids    = _probe_ssids(blob)
-        assoc_bssid    = _associated_bssid(blob)
-        deauth_count   = deauth_counts.get(mac.upper(), 0)
+        mac             = blob.get("kismet.device.base.macaddr", "")
+        vendor          = blob.get("kismet.device.base.manuf", "Unknown")
+        signal          = _best_signal(blob)
+        channel         = _channel(blob)
+        enc             = _encryption_flags(blob)
+        time_first_seen = _first_time(blob) or _last_time(blob)
+        time_last_seen  = _last_time(blob)
+        frame_count     = blob.get("kismet.device.base.packets.total", 0)
+        signal_var      = _signal_variance(blob)
+        beacon_int      = _beacon_interval(blob)
+        ssid_history    = _ssid_history(blob)
+        probe_count     = len(_probe_ssids(blob))   # count only — names not stored (UK GDPR)
+        assoc_bssid     = _associated_bssid(blob)
+        deauth_count    = deauth_counts.get(mac.upper(), 0)
 
-        # flag devices with an unusually large probe list
+        # flag devices with an unusually large probe count
         flags = enc
-        if len(probe_ssids) >= PROBE_SSID_THRESHOLD and not flags:
+        if probe_count >= PROBE_SSID_THRESHOLD and not flags:
             flags = "Suspicious"
+
+        # compute time_seen_seconds from kismet timestamps
+        try:
+            from datetime import datetime as _dt
+            fs = _dt.fromisoformat(time_first_seen) if time_first_seen else None
+            ls = _dt.fromisoformat(time_last_seen)  if time_last_seen  else None
+            time_seen_seconds = max(0, int((ls - fs).total_seconds())) if fs and ls else None
+        except (ValueError, TypeError):
+            time_seen_seconds = None
 
         devices.append({
             "mac":              mac,
             "vendor":           vendor,
             "signal":           signal,
             "channel":          channel,
-            "time_seen":        time_seen,
-            "first_seen":       first_seen,
-            "last_seen":        last_seen,
+            "time_first_seen":  time_first_seen,
+            "time_last_seen":   time_last_seen,
+            "time_seen_seconds": time_seen_seconds,
             "frame_count":      frame_count,
             "signal_variance":  signal_var,
             "beacon_interval":  beacon_int,
             "ssid_history":     ssid_history,
-            "probe_ssids":      probe_ssids,
+            "probe_count":      probe_count,
             "associated_bssid": assoc_bssid,
             "deauth_count":     deauth_count,
             "flags":            flags,

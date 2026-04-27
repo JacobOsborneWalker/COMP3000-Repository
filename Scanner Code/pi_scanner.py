@@ -332,7 +332,11 @@ def _fill_timestamps(devices, scan_type):
     result = []
     for d in devices:
         dev = dict(d)
+
+        # remove legacy / placeholder time fields
         dev.pop("time_seen", None)
+        dev.pop("first_seen", None)
+        dev.pop("last_seen",  None)
 
         offset_first = random.randint(0, max(1, int(duration * 0.6)))
         offset_last  = random.randint(offset_first + 5, duration)
@@ -340,17 +344,13 @@ def _fill_timestamps(devices, scan_type):
         first_dt = scan_start + timedelta(seconds=offset_first)
         last_dt  = scan_start + timedelta(seconds=offset_last)
 
-        if dev.get("first_seen") == "auto" or "first_seen" not in dev:
-            dev["first_seen"] = first_dt.isoformat()
-        if dev.get("last_seen") == "auto" or "last_seen" not in dev:
-            dev["last_seen"]  = last_dt.isoformat()
+        dev["time_first_seen"]   = first_dt.isoformat()
+        dev["time_last_seen"]    = last_dt.isoformat()
+        dev["time_seen_seconds"] = max(0, int((last_dt - first_dt).total_seconds()))
 
-        try:
-            fs = datetime.fromisoformat(dev["first_seen"])
-            ls = datetime.fromisoformat(dev["last_seen"])
-            dev["total_time_seen"] = max(0, int((ls - fs).total_seconds()))
-        except (ValueError, TypeError):
-            dev["total_time_seen"] = 0
+        # convert probe_ssids list → probe_count (actual names not stored, UK GDPR)
+        if "probe_ssids" in dev:
+            dev["probe_count"] = len(dev.pop("probe_ssids"))
 
         result.append(dev)
 

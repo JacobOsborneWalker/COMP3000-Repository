@@ -56,10 +56,10 @@ def analyse_devices(devices: list[dict], scan_type: str = "Deep Passive") -> lis
 
 # probing many SSIDs?
 def _check_probe_ssids(dev: dict) -> set[str]:
-
-    probes = dev.get("probe_ssids") or []
-    if len(probes) >= PROBE_COUNT_THRESHOLD:
-        log.debug("%s flagged: %d probe SSIDs", dev.get("mac"), len(probes))
+    # probe_count is an integer — actual SSID names are not stored (UK GDPR)
+    count = dev.get("probe_count") or 0
+    if count >= PROBE_COUNT_THRESHOLD:
+        log.debug("%s flagged: %d probe SSIDs", dev.get("mac"), count)
         return {"Suspicious"}
     return set()
 
