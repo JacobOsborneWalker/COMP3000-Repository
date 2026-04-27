@@ -115,62 +115,6 @@
             <button id="submitScanBtn" class="primary-btn">Submit Scan</button>
         </div>
 
-        <!-- activity page -->
-        <div id="activity" class="page hidden">
-            <h2>Scan Activity</h2>
-
-            <h3>In Progress</h3>
-            <table id="inProgressTable">
-                <thead>
-                    <tr>
-                        <th>Request ID</th>
-                        <th>Scanner(s)</th>
-                        <th>Type</th>
-                        <th>Requested By</th>
-                        <th>Approved By</th>
-                        <th>Submitted</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="6" class="table-loading">Loading...</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Upcoming (Scheduled)</h3>
-            <table id="scheduledTable">
-                <thead>
-                    <tr>
-                        <th>Request ID</th>
-                        <th>Scanner(s)</th>
-                        <th>Type</th>
-                        <th>Requested By</th>
-                        <th>Scheduled At</th>
-                        <th>Starts In</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="6" class="table-loading">Loading...</td></tr>
-                </tbody>
-            </table>
-
-            <h3>Awaiting Approval</h3>
-            <table id="awaitingTable">
-                <thead>
-                    <tr>
-                        <th>Request ID</th>
-                        <th>Scanner(s)</th>
-                        <th>Type</th>
-                        <th>Requested By</th>
-                        <th>Submitted</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="6" class="table-loading">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
         <!-- approval page -->
         <div id="approval" class="page hidden">
             <h2>Pending Scan Requests</h2>
@@ -240,8 +184,22 @@
 
             <!-- detected devices -->
             <h3>Detected Devices</h3>
-            <div class="table-scroll">
-                <table id="devicesTable">
+
+            <h4 class="sub-table-label">Device Overview</h4>
+            <table id="devicesTableOverview">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+
+            <h4 class="sub-table-label">Signal &amp; Timing</h4>
+            <table id="devicesTableSignal">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+
+            <div id="behaviourSection">
+                <h4 class="sub-table-label">Behaviour Analysis</h4>
+                <table id="devicesTableBehaviour">
                     <thead></thead>
                     <tbody></tbody>
                 </table>

@@ -1195,141 +1195,234 @@ document.addEventListener("DOMContentLoaded", () => {
                 ]);
             }
 
-            // devices table - rebuild header based on scan type
-            const devicesTable = document.getElementById("devicesTable");
-            const devicesTbody = clearTable("#devicesTable tbody");
+            // threat alet banner
+            (function() {
+                const existing = document.getElementById("threatBanner");
+                if (existing) existing.remove();
 
-            const baseHeaders = ["MAC", "Vendor", "Signal (dBm)", "Channel", "First Seen", "Flags", "Status"];
-            const richHeaders  = ["Last Seen", "Duration", "Frame Count", "Signal Variance", "Beacon Interval", "Probe Count", "SSID History", "Associated BSSID", "Deauth Frames"];
+                const rogueDevices     = devices.filter(d => (d.flags || "").includes("Rogue AP") && !d.known);
+                const suspDevices      = devices.filter(d => (d.flags || "").includes("Suspicious") && !d.known);
+                const unknownDevices   = devices.filter(d => !d.known && !d.flags);
+                const allClear         = rogueDevices.length === 0 && suspDevices.length === 0;
 
-            let headers;
-            if (isRich) {
-                headers = [...baseHeaders, ...richHeaders];
-            } else {
-                headers = baseHeaders;
-            }
+                const banner = document.createElement("div");
+                banner.id = "threatBanner";
+                banner.className = "threat-banner";
 
-            const thead = devicesTable.querySelector("thead");
-            thead.innerHTML = "";
-            const headerRow = thead.insertRow();
-            headers.forEach(h => {
-                const th = document.createElement("th");
-                th.textContent = h;
-                headerRow.appendChild(th);
+                if (allClear) {
+                    banner.innerHTML = `
+                        <div class="threat-card threat-safe">
+                            <span class="threat-icon">✓</span>
+                            <div>
+                                <strong>No Threats Detected</strong>
+                                <p>All flagged devices are known and accounted for.</p>
+                            </div>
+                        </div>`;
+                } else {
+                    let cards = "";
+                    if (rogueDevices.length > 0) {
+                        const list = rogueDevices.map(d => `<li>${d.mac}${d.vendor ? " (" + d.vendor + ")" : ""}</li>`).join("");
+                        cards += `
+                        <div class="threat-card threat-danger">
+                            <span class="threat-icon">⚠</span>
+                            <div>
+                                <strong>${rogueDevices.length} Rogue Access Point${rogueDevices.length > 1 ? "s" : ""} Detected</strong>
+                                <p>A rogue access point is a fake Wi-Fi network designed to intercept traffic or impersonate a legitimate network. Immediate investigation is recommended.</p>
+                                <ul>${list}</ul>
+                            </div>
+                        </div>`;
+                    }
+                    if (suspDevices.length > 0) {
+                        const list = suspDevices.map(d => `<li>${d.mac}${d.vendor ? " (" + d.vendor + ")" : ""}</li>`).join("");
+                        cards += `
+                        <div class="threat-card threat-warning">
+                            <span class="threat-icon">!</span>
+                            <div>
+                                <strong>${suspDevices.length} Suspicious Device${suspDevices.length > 1 ? "s" : ""} Found</strong>
+                                <p>These devices showed unusual behaviour such as high signal instability, abnormal beacon timing, or excessive network probing. They should be reviewed.</p>
+                                <ul>${list}</ul>
+                            </div>
+                        </div>`;
+                    }
+                    banner.innerHTML = cards;
+                }
+
+                const devicesHeading = document.querySelector("#results h3");
+                const allH3 = document.querySelectorAll("#results h3");
+                let insertTarget = null;
+                allH3.forEach(h => { if (h.textContent.trim() === "Detected Devices") insertTarget = h; });
+                if (insertTarget) {
+                    insertTarget.insertAdjacentElement("afterend", banner);
+                }
+            })();
+
+            // table 1 - device overview
+            const overviewThead = document.querySelector("#devicesTableOverview thead");
+            const overviewTbody = clearTable("#devicesTableOverview tbody");
+            overviewThead.innerHTML = "";
+            addRow(overviewThead.insertRow ? overviewThead : overviewThead, []);
+            (function() {
+                const hr = overviewThead.insertRow();
+                ["Risk", "MAC", "Vendor", "Flags", "Status"].forEach(h => {
+                    const th = document.createElement("th");
+                    th.textContent = h;
+                    hr.appendChild(th);
+                });
+            })();
+
+            devices.forEach(d => {
+                const isRogue = (d.flags || "").includes("Rogue AP") && !d.known;
+                const isSupp  = (d.flags || "").includes("Suspicious") && !d.known;
+
+                const tr = document.createElement("tr");
+
+                // risk pill — always first column
+                const riskCell = tr.insertCell();
+                const pill = document.createElement("span");
+                if (isRogue) {
+                    pill.className = "risk-pill risk-high";
+                    pill.textContent = "High Risk";
+                    tr.classList.add("row-danger");
+                } else if (isSupp) {
+                    pill.className = "risk-pill risk-medium";
+                    pill.textContent = "Suspicious";
+                    tr.classList.add("row-warning");
+                } else if (!d.known) {
+                    pill.className = "risk-pill risk-unknown";
+                    pill.textContent = "Unknown";
+                    tr.classList.add("unknown-device");
+                } else {
+                    pill.className = "risk-pill risk-safe";
+                    pill.textContent = "Safe";
+                }
+                riskCell.appendChild(pill);
+
+                // mac
+                addCellText(tr, d.mac);
+
+                // vendor
+                addCellText(tr, d.vendor || "Unknown");
+
+                // flags with plain-english tooltip
+                const flagCell = tr.insertCell();
+                const flagsText = d.flags || "None";
+                flagCell.textContent = flagsText;
+                const explanations = {
+                    "Rogue AP":   "This device is broadcasting a Wi-Fi network name already used by a legitimate device — a classic sign of an evil twin attack designed to intercept traffic.",
+                    "Suspicious": "This device showed one or more unusual behaviours: high signal instability, abnormal beacon timing, an unusually large number of network probes, sending deauthentication frames, or connecting to a flagged device.",
+                };
+                const parts = flagsText.split(",").map(f => f.trim());
+                const tips = parts.map(p => explanations[p]).filter(Boolean);
+                if (tips.length) flagCell.title = tips.join(" | ");
+
+                // known/unknown badge
+                const badge = el("span", d.known ? "badge known" : "badge unknown");
+                badge.textContent = d.known ? `Known: ${d.label}` : "Unknown Device";
+                tr.insertCell().appendChild(badge);
+
+                overviewTbody.appendChild(tr);
             });
 
-            if (devicesTbody) {
+            // table 2 - signal strenght and timing
+            const signalThead = document.querySelector("#devicesTableSignal thead");
+            const signalTbody = clearTable("#devicesTableSignal tbody");
+            signalThead.innerHTML = "";
+            (function() {
+                const hr = signalThead.insertRow();
+                const signalHeaders = isRich
+                    ? ["MAC", "Signal (dBm)", "Channel", "First Seen", "Last Seen", "Duration"]
+                    : ["MAC", "Signal (dBm)", "Channel", "First Seen"];
+                signalHeaders.forEach(h => {
+                    const th = document.createElement("th");
+                    th.textContent = h;
+                    hr.appendChild(th);
+                });
+            })();
+
+            devices.forEach(d => {
+                const tr = addRow(signalTbody, [
+                    d.mac, d.signal, d.channel, fmtDate(d.time_first_seen)
+                ]);
+                if ((d.flags || "").includes("Rogue AP") && !d.known) tr.classList.add("row-danger");
+                else if ((d.flags || "").includes("Suspicious") && !d.known) tr.classList.add("row-warning");
+                else if (!d.known) tr.classList.add("unknown-device");
+                if (isRich) {
+                    addCellText(tr, d.time_last_seen ? fmtDate(d.time_last_seen) : "N/A");
+                    const durCell = tr.insertCell();
+                    if (d.time_seen_seconds != null) {
+                        const mins = Math.floor(d.time_seen_seconds / 60);
+                        const secs = d.time_seen_seconds % 60;
+                        durCell.textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                    } else {
+                        durCell.textContent = "N/A";
+                    }
+                }
+            });
+
+            // table 3 - behavior section
+            const behaviourSection = document.getElementById("behaviourSection");
+            behaviourSection.classList.toggle("hidden", !isRich);
+
+            if (isRich) {
+                const behaviourThead = document.querySelector("#devicesTableBehaviour thead");
+                const behaviourTbody = clearTable("#devicesTableBehaviour tbody");
+                behaviourThead.innerHTML = "";
+                (function() {
+                    const hr = behaviourThead.insertRow();
+                    ["MAC", "Frame Count", "Signal Variance", "Beacon Interval",
+                     "Probe Count", "SSID History", "Associated BSSID", "Deauth Frames"
+                    ].forEach(h => {
+                        const th = document.createElement("th");
+                        th.textContent = h;
+                        hr.appendChild(th);
+                    });
+                })();
+
                 devices.forEach(d => {
-                    let flagsText;
-                    if (d.flags) {
-                        flagsText = d.flags;
+                    const tr = addRow(behaviourTbody, [d.mac]);
+                    if ((d.flags || "").includes("Rogue AP") && !d.known) tr.classList.add("row-danger");
+                    else if ((d.flags || "").includes("Suspicious") && !d.known) tr.classList.add("row-warning");
+                    else if (!d.known) tr.classList.add("unknown-device");
+
+                    // frame count
+                    addCellText(tr, d.frame_count != null ? d.frame_count : "N/A");
+
+                    // signal variance
+                    const varCell = tr.insertCell();
+                    if (d.signal_variance != null) {
+                        varCell.textContent = d.signal_variance.toFixed(1);
+                        if (d.signal_variance > 10) varCell.classList.add("flag-warning");
                     } else {
-                        flagsText = "None";
+                        varCell.textContent = "N/A";
                     }
 
-                    const tr = addRow(devicesTbody, [
-                        d.mac, d.vendor, d.signal, d.channel,
-                        fmtDate(d.time_first_seen), flagsText
-                    ]);
-
-                    if (!d.known) {
-                        tr.classList.add("unknown-device");
-                    }
-
-                    let badgeClass;
-                    let badgeText;
-                    if (d.known) {
-                        badgeClass = "badge known";
-                        badgeText  = `Known: ${d.label}`;
+                    // beacon interval
+                    const beaconCell = tr.insertCell();
+                    if (d.beacon_interval != null) {
+                        beaconCell.textContent = `${d.beacon_interval} ms`;
+                        if (d.beacon_interval !== 100) beaconCell.classList.add("flag-warning");
                     } else {
-                        badgeClass = "badge unknown";
-                        badgeText  = "Unknown Device";
+                        beaconCell.textContent = "N/A";
                     }
-                    const badge = el("span", badgeClass);
-                    badge.textContent = badgeText;
-                    tr.insertCell().appendChild(badge);
 
-                    if (isRich) {
-                        // last seen
-                        addCellText(tr, d.time_last_seen ? fmtDate(d.time_last_seen) : "N/A");
+                    // probe count
+                    const probeCell = tr.insertCell();
+                    const probeCount = d.probe_count || 0;
+                    probeCell.textContent = probeCount > 0 ? `${probeCount} SSIDs` : "None";
+                    if (probeCount >= 5) probeCell.classList.add("flag-warning");
 
-                        // duration
-                        const durCell = tr.insertCell();
-                        if (d.time_seen_seconds != null) {
-                            const mins = Math.floor(d.time_seen_seconds / 60);
-                            const secs = d.time_seen_seconds % 60;
-                            durCell.textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-                        } else {
-                            durCell.textContent = "N/A";
-                        }
+                    // ssid history
+                    const histCell = tr.insertCell();
+                    histCell.textContent = (d.ssid_history && d.ssid_history.length)
+                        ? d.ssid_history.join(", ") : "None";
 
-                        let frameCountText;
-                        if (d.frame_count != null) {
-                            frameCountText = d.frame_count;
-                        } else {
-                            frameCountText = "N/A";
-                        }
-                        addCellText(tr, frameCountText);
+                    // associated bssid
+                    addCellText(tr, d.associated_bssid || "None");
 
-                        const varCell = tr.insertCell();
-                        if (d.signal_variance != null) {
-                            varCell.textContent = d.signal_variance.toFixed(1);
-                            if (d.signal_variance > 10) {
-                                varCell.classList.add("flag-warning");
-                            }
-                        } else {
-                            varCell.textContent = "N/A";
-                        }
-
-                        const beaconCell = tr.insertCell();
-                        if (d.beacon_interval != null) {
-                            beaconCell.textContent = `${d.beacon_interval} ms`;
-                            if (d.beacon_interval !== 100) {
-                                beaconCell.classList.add("flag-warning");
-                            }
-                        } else {
-                            beaconCell.textContent = "N/A";
-                        }
-
-                        const probeCell  = tr.insertCell();
-                        const probeCount = d.probe_count || 0;
-                        probeCell.textContent = probeCount > 0 ? `${probeCount} SSIDs` : "None";
-                        if (probeCount >= 5) {
-                            probeCell.classList.add("flag-warning");
-                        }
-
-                        const histCell  = tr.insertCell();
-                        let histCount;
-                        if (d.ssid_history) {
-                            histCount = d.ssid_history.length;
-                        } else {
-                            histCount = 0;
-                        }
-
-                        if (histCount > 0) {
-                            histCell.textContent = d.ssid_history.join(", ");
-                        } else {
-                            histCell.textContent = "None";
-                        }
-
-                        let associatedText;
-                        if (d.associated_bssid) {
-                            associatedText = d.associated_bssid;
-                        } else {
-                            associatedText = "None";
-                        }
-                        addCellText(tr, associatedText);
-
-                        const deauthCell = tr.insertCell();
-                        if (d.deauth_count != null) {
-                            deauthCell.textContent = d.deauth_count;
-                        } else {
-                            deauthCell.textContent = 0;
-                        }
-                        if (d.deauth_count > 0) {
-                            deauthCell.classList.add("flag-danger");
-                        }
-                    }
+                    // deauth frames
+                    const deauthCell = tr.insertCell();
+                    deauthCell.textContent = d.deauth_count != null ? d.deauth_count : 0;
+                    if (d.deauth_count > 0) deauthCell.classList.add("flag-danger");
                 });
             }
 

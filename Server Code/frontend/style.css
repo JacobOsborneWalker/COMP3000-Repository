@@ -480,6 +480,106 @@ td.flag-danger {
     color: var(--primary);
 }
 
+/* threat allert banner */
+.threat-banner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0 24px;
+}
+
+.threat-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border-left: 5px solid transparent;
+}
+
+.threat-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    width: 28px;
+    text-align: center;
+}
+
+.threat-card strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.threat-card p {
+    margin: 0 0 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: inherit;
+    opacity: 0.9;
+}
+
+.threat-card ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    font-family: monospace;
+    opacity: 0.85;
+}
+
+.threat-safe {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.threat-danger {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.threat-warning {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+/* risks */
+.risk-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.risk-high    { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.risk-medium  { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.risk-unknown { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+.risk-safe    { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+/* flagged row */
+tr.row-danger  { background: #fff0f0 !important; }
+tr.row-danger:hover { background: #fde0e0 !important; }
+tr.row-warning { background: #fffbf0 !important; }
+tr.row-warning:hover { background: #fff3cd !important; }
+
+/* sub-table section labels on results page */
+.sub-table-label {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 4px;
+}
+
 /* node result tabs on the results page */
 .node-tabs {
     display: flex;
@@ -510,20 +610,5 @@ td.flag-danger {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
-    font-weight: 600;
-}
-/* in-progress scan rows on the activity page */
-tr.row-in-progress td {
-    background: #eaf4fb;
-}
-
-tr.row-in-progress:hover td {
-    background: #d6eaf8;
-}
-
-/* countdown cell on scheduled table */
-.countdown-cell {
-    font-variant-numeric: tabular-nums;
-    color: var(--primary);
     font-weight: 600;
 }
