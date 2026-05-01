@@ -93,4 +93,4 @@ with app.app_context():
     for uid, key in node_keys.items():
         print(f"  {uid}: {key}")
     print()
-    print("IMPORTANT: delete users.json now that seeding is complete.")
+    print("delete users.json now that seeding is complete.")

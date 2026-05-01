@@ -1283,14 +1283,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     pill.className = "risk-pill risk-high";
                     pill.textContent = "High Risk";
                     tr.classList.add("row-danger");
+
                 } else if (isSupp) {
                     pill.className = "risk-pill risk-medium";
                     pill.textContent = "Suspicious";
                     tr.classList.add("row-warning");
+
                 } else if (!d.known) {
                     pill.className = "risk-pill risk-unknown";
                     pill.textContent = "Unknown";
                     tr.classList.add("unknown-device");
+                    
                 } else {
                     pill.className = "risk-pill risk-safe";
                     pill.textContent = "Safe";
@@ -1327,6 +1330,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const signalThead = document.querySelector("#devicesTableSignal thead");
             const signalTbody = clearTable("#devicesTableSignal tbody");
             signalThead.innerHTML = "";
+
             (function() {
                 const hr = signalThead.insertRow();
                 const signalHeaders = isRich
@@ -1344,8 +1348,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     d.mac, d.signal, d.channel, fmtDate(d.time_first_seen)
                 ]);
                 if ((d.flags || "").includes("Rogue AP") && !d.known) tr.classList.add("row-danger");
+
                 else if ((d.flags || "").includes("Suspicious") && !d.known) tr.classList.add("row-warning");
+
                 else if (!d.known) tr.classList.add("unknown-device");
+
                 if (isRich) {
                     addCellText(tr, d.time_last_seen ? fmtDate(d.time_last_seen) : "N/A");
                     const durCell = tr.insertCell();
