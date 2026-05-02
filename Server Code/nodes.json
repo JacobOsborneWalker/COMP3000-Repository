@@ -8,8 +8,8 @@
   },
   {
     "node_uid": "Pi-A",
-    "site":     "Sevenoaks",
-    "area":     "Garden Office",
+    "site":     "Plymouth Uni",
+    "area":     "Room 1",
     "network":  "192.168.1.0/24",
     "status":   "warning"
   },
@@ -23,7 +23,7 @@
   {
     "node_uid": "Pi-C",
     "site":     "Accomodation Building",
-    "area":     "Main Rom",
+    "area":     "Main Room",
     "network":  "192.168.3.0/24",
     "status":   "offline"
   }

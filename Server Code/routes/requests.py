@@ -63,7 +63,8 @@ def create_request():
         node_uids    = ",".join(node_uids)   if node_uids   else None,
         node_labels  = "|".join(node_labels) if node_labels else None,
     )
-    new_request.network = networks[0] if networks else ""
+    # store all networks so every assigned scanner's network is present
+    new_request.network = "|".join(networks) if networks else ""
     new_request.notes   = notes or None
     db.session.add(new_request)
     db.session.commit()

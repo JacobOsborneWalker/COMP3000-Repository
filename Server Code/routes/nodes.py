@@ -10,6 +10,17 @@ from datetime import datetime, timezone, timedelta
 nodes_bp = Blueprint("nodes", __name__)
 
 
+def _authenticate_node(node_uid: str):
+    _UNAUTH = (None, (jsonify({"error": "invalid node credentials"}), 401))
+    api_key = request.headers.get("X-API-Key", "")
+    if not api_key:
+        return _UNAUTH
+    node = Node.query.filter_by(node_uid=node_uid).first()
+    if not node or not node.check_api_key(api_key):
+        return _UNAUTH
+    return node, None
+
+
 # registered scanners
 @nodes_bp.route("/nodes", methods=["GET"])
 @require_roles()
@@ -120,16 +131,17 @@ def get_node_detail(node_id):
 
 
 # pi poll endpoint
-# no api key check - matches the same open pattern as the checkin endpoint
 @nodes_bp.route("/nodes/<string:node_uid>/poll", methods=["GET"])
 def poll_approved_scans(node_uid):
-    node = Node.query.filter_by(node_uid=node_uid).first_or_404()
+    node, err = _authenticate_node(node_uid)
+    if err:
+        return err
 
     all_approved = ScanRequest.query.filter_by(status="approved").all()
     waiting = [
         r for r in all_approved
         if node_uid in (r.node_uids or "").split(",")
-        and len(r.results) == 0
+        and not any(res.node_uid == node_uid for res in r.results)
     ]
 
     return jsonify({
@@ -148,34 +160,32 @@ def poll_approved_scans(node_uid):
 # pi check in endpoint
 @nodes_bp.route("/nodes/<string:node_uid>/checkin", methods=["POST"])
 def node_checkin(node_uid):
-    node = Node.query.filter_by(node_uid=node_uid).first_or_404()
+    node, err = _authenticate_node(node_uid)
+    if err:
+        return err
+
     data = request.get_json() or {}
+    node.status       = data.get("status", "online")
+    node.last_checkin = datetime.now(timezone.utc)
 
-    node.status      = data.get("status", "online")
-    node.last_checkin = datetime.utcnow()
-
-    # report error
     if data.get("error"):
-        err = NodeError(node_id=node.id, message=data["error"])
-        db.session.add(err)
-
-    # report alert
+        db.session.add(NodeError(node_id=node.id, message=data["error"]))
     if data.get("alert"):
-        alert = NodeAlert(node_id=node.id, message=data["alert"])
-        db.session.add(alert)
+        db.session.add(NodeAlert(node_id=node.id, message=data["alert"]))
 
     db.session.commit()
     return jsonify({"message": "Check-in received"})
 
 
 # pi result submission endpoint
-# no api key check - matches the same open pattern as checkin and poll
 @nodes_bp.route("/nodes/<string:node_uid>/result", methods=["POST"])
 def submit_node_result(node_uid):
     from models import ScanRequest, ScanResult, DetectedDevice, KnownDevice
     from datetime import datetime, timezone
 
-    node = Node.query.filter_by(node_uid=node_uid).first_or_404()
+    node, err = _authenticate_node(node_uid)
+    if err:
+        return err
 
     data = request.get_json() or {}
     req_id = data.get("scan_request_id")
@@ -183,8 +193,12 @@ def submit_node_result(node_uid):
         return jsonify({"error": "scan_request_id is required"}), 400
 
     scan_request = ScanRequest.query.get_or_404(req_id)
-    if scan_request.status != "approved":
+    if scan_request.status not in ("approved", "completed"):
         return jsonify({"error": "scan request is not approved"}), 400
+
+    # prevent duplicate submission from the same node
+    if any(res.node_uid == node_uid for res in scan_request.results):
+        return jsonify({"error": "result already submitted for this node"}), 409
 
     detected    = data.get("devices", [])
     now         = datetime.now(timezone.utc)
@@ -246,6 +260,14 @@ def submit_node_result(node_uid):
         db.session.add(device)
 
     db.session.commit()
+
+    # mark complete once every assigned node has submitted
+    expected  = [uid for uid in (scan_request.node_uids or "").split(",") if uid]
+    submitted = [res.node_uid for res in scan_request.results]
+    if expected and all(uid in submitted for uid in expected):
+        scan_request.status = "completed"
+        db.session.commit()
+
     return jsonify({"message": "Result saved", "id": result.id}), 201
 
 

@@ -25,7 +25,8 @@
             <span id="userInfo"></span>
             <div class="header-buttons">
                 <button id="btnAdminQuick" class="hidden">Admin Panel</button>
-                <button id="btnLogout">Logout</button>
+                <button id="btnLogout">Change Password</button>
+                <button id="btnLogoutAction">Logout</button>
             </div>
         </header>
 
@@ -115,6 +116,68 @@
             <button id="submitScanBtn" class="primary-btn">Submit Scan</button>
         </div>
 
+        <!-- scan activity page -->
+        <div id="activity" class="page hidden">
+            <h2>Scan Activity</h2>
+
+            <div class="section-header">
+                <h3>In Progress</h3>
+            </div>
+            <table id="inProgressTable">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Scanners</th>
+                        <th>Type</th>
+                        <th>Requested By</th>
+                        <th>Approved By</th>
+                        <th>Started</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" class="table-loading">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <div class="section-header">
+                <h3>Scheduled</h3>
+            </div>
+            <table id="scheduledTable">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Scanners</th>
+                        <th>Type</th>
+                        <th>Requested By</th>
+                        <th>Scheduled At</th>
+                        <th>Starts In</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" class="table-loading">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <div class="section-header">
+                <h3>Awaiting Approval</h3>
+            </div>
+            <table id="awaitingTable">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Scanners</th>
+                        <th>Type</th>
+                        <th>Requested By</th>
+                        <th>Notes</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6" class="table-loading">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
         <!-- approval page -->
         <div id="approval" class="page hidden">
             <h2>Pending Scan Requests</h2>
@@ -179,6 +242,15 @@
                 </tbody>
             </table>
 
+            <!-- overall summary (shown for multi-node scans) -->
+            <div id="combinedSummarySection" class="hidden">
+                <h3>Overall Summary <span id="combinedSummaryNodeCount" class="combined-node-count"></span></h3>
+                <table id="combinedSummaryTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
             <!-- node tabs (shown for multi-node scans) -->
             <div id="nodeTabs" class="node-tabs hidden"></div>
 
@@ -212,19 +284,12 @@
                 <tbody></tbody>
             </table>
 
-            <div id="combinedSummarySection" class="hidden">
-                <h3>Combined Summary (All Scanners)</h3>
-                <table id="combinedSummaryTable">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+
 
             <!-- export button -->
             <div class="export-buttons">
                 <button id="exportCSV">Export CSV</button>
                 <button id="exportJSON">Export JSON</button>
-                <button id="exportPDF">Export PDF</button>
             </div>
         </div>
 
@@ -236,7 +301,7 @@
             <div class="section-header">
                 <h3>Registered Scanners</h3>
                 <div class="header-buttons">
-                    <button id="btnRefreshNodes" class="secondary-btn">&#8635; Refresh</button>
+                    <button id="btnRefreshNodes" class="secondary-btn">Refresh</button>
                     <button id="btnRegisterNode" class="primary-btn hidden">+ Register Scanner</button>
                 </div>
             </div>
@@ -249,7 +314,6 @@
                         <th>Network</th>
                         <th>Status</th>
                         <th>Last Check-in</th>
-                        <th>Alerts</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -284,7 +348,34 @@
             <div id="nodeDetailPanel" class="hidden">
                 <div class="section-header">
                     <h3>Scanner Detail - <span id="nodeDetailTitle"></span></h3>
-                    <button class="secondary-btn" onclick="closeNodeDetail()">✕ Close</button>
+                    <div class="header-buttons">
+                        <button id="btnEditNode" class="secondary-btn hidden">Edit Location</button>
+                        <button class="secondary-btn" onclick="closeNodeDetail()">Close</button>
+                    </div>
+                </div>
+
+                <!-- inline edit form, hidden until Edit is clicked -->
+                <div id="editNodeForm" class="sub-form hidden">
+                    <h4>Edit Scanner Location</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Site</label>
+                            <input type="text" id="editNodeSite" placeholder="e.g. Main Building">
+                        </div>
+                        <div class="form-group">
+                            <label>Area</label>
+                            <input type="text" id="editNodeArea" placeholder="e.g. Reception">
+                        </div>
+                        <div class="form-group">
+                            <label>Network</label>
+                            <input type="text" id="editNodeNetwork" placeholder="e.g. 192.168.1.0/24">
+                        </div>
+                    </div>
+                    <div class="form-row-btns">
+                        <button class="primary-btn" onclick="saveNodeEdit()">Save Changes</button>
+                        <button class="secondary-btn" onclick="cancelNodeEdit()">Cancel</button>
+                    </div>
+                    <p id="editNodeError" class="error hidden"></p>
                 </div>
 
                 <div class="node-detail-grid">
@@ -313,13 +404,6 @@
                         </table>
                     </div>
 
-                    <div class="node-detail-card node-detail-card--full">
-                        <h4>Active Alerts</h4>
-                        <table id="nodeAlertsTable">
-                            <thead><tr><th>Message</th><th>Time</th><th>Action</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
         </div>
@@ -327,6 +411,27 @@
         <!-- admin page -->
         <div id="admin" class="page hidden">
             <h2>Admin Panel</h2>
+
+            <div id="usersSection">
+                <div class="section-header">
+                    <h3>User Management</h3>
+                </div>
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Last Login</th>
+                            <th>Failed Attempts</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" class="table-loading">Loading users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div id="knownDevicesSection"></div>
         </div>
     </div>

@@ -12,7 +12,7 @@ results_bp = Blueprint("results", __name__)
 @require_roles()
 def get_results():
     requests = ScanRequest.query.filter(
-        ScanRequest.status == "approved"
+        ScanRequest.status.in_(["approved", "completed"])
     ).order_by(ScanRequest.created_at.desc()).all()
 
     return jsonify([

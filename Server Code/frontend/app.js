@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const app            = document.getElementById("app");
     const userInfo       = document.getElementById("userInfo");
     const btnLogout      = document.getElementById("btnLogout");
+    const btnLogoutAction = document.getElementById("btnLogoutAction");
     const btnAdminQuick  = document.getElementById("btnAdminQuick");
     const tilesContainer = document.getElementById("tiles");
     const submitScanBtn  = document.getElementById("submitScanBtn");
@@ -35,7 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
 
     loginBtn.addEventListener("click", handleLogin);
-    btnLogout.addEventListener("click", logout);
+    btnLogout.addEventListener("click", showChangePasswordModal);
+    if (btnLogoutAction) { btnLogoutAction.addEventListener("click", logout); }
 
     loginPass.addEventListener("keydown", e => {
         if (e.key === "Enter") {
@@ -185,6 +187,72 @@ document.addEventListener("DOMContentLoaded", () => {
         startKeepalive();
     }
 
+    // change password modal (for logged-in user changing their own password)
+    function showChangePasswordModal() {
+        const overlay = document.createElement("div");
+        overlay.id = "pwdModalOverlay";
+        overlay.innerHTML = `
+            <div id="pwdModalBox">
+                <h3>Change Password</h3>
+                <p>Enter your current password, then choose a new one (min. 10 characters).</p>
+                <input id="pwdCurrentInput" type="password" placeholder="Current password" autocomplete="current-password" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:8px;box-sizing:border-box;">
+                <input id="pwdModalInput" type="password" placeholder="New password" autocomplete="new-password">
+                <input id="pwdNewConfirm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-top:6px;box-sizing:border-box;">
+                <div id="pwdModalError"></div>
+                <div id="pwdModalBtns">
+                    <button id="pwdModalCancel">Cancel</button>
+                    <button id="pwdModalConfirm">Change Password</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const currentInput = overlay.querySelector("#pwdCurrentInput");
+        const newInput     = overlay.querySelector("#pwdModalInput");
+        const confirmInput = overlay.querySelector("#pwdNewConfirm");
+        const errEl        = overlay.querySelector("#pwdModalError");
+        const confirmBtn   = overlay.querySelector("#pwdModalConfirm");
+        const cancelBtn    = overlay.querySelector("#pwdModalCancel");
+
+        currentInput.focus();
+        cancelBtn.onclick = () => overlay.remove();
+
+        confirmBtn.onclick = () => {
+            const current  = currentInput.value;
+            const newPwd   = newInput.value;
+            const confPwd  = confirmInput.value;
+            errEl.textContent = "";
+
+            if (!current || !newPwd || !confPwd) {
+                errEl.textContent = "All fields are required.";
+                return;
+            }
+            if (newPwd !== confPwd) {
+                errEl.textContent = "New passwords do not match.";
+                return;
+            }
+            if (newPwd.length < 10) {
+                errEl.textContent = "New password must be at least 10 characters.";
+                return;
+            }
+
+            apiFetch("/change-password", {
+                method: "POST",
+                body: JSON.stringify({ current_password: current, new_password: newPwd })
+            }).then(resp => {
+                if (resp.status === 200) {
+                    overlay.remove();
+                    alert("Password changed successfully.");
+                } else {
+                    errEl.textContent = (resp.data && resp.data.error) || "Failed to change password.";
+                }
+            });
+        };
+
+        [currentInput, newInput, confirmInput].forEach(inp => {
+            inp.onkeydown = e => { if (e.key === "Enter") { confirmBtn.onclick(); } };
+        });
+    }
+
     // logout
     function logout() {
         stopKeepalive();
@@ -265,30 +333,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function setupCreateScanPage() {
         const select = document.getElementById("scanTypeSelect");
-        if (!select) {
-            return;
-        }
+        if (!select) { return; }
 
         select.innerHTML = '<option value="">Select Type</option>';
 
-        // all scan types
         const allTypes = [
             { value: "Passive",      label: "Passive Scan" },
             { value: "Active",       label: "Active Scan" },
             { value: "Deep Passive", label: "Deep Passive Scan" }
         ];
 
-        // scan type for technician
         const techTypes = [
             { value: "Passive", label: "Passive Scan (Routine)" }
         ];
 
-        let types;
-        if (currentUser.role === "technician") {
-            types = techTypes;
-        } else {
-            types = allTypes;
-        }
+        const types = currentUser.role === "technician" ? techTypes : allTypes;
 
         types.forEach(t => {
             const opt = el("option", null, t.label);
@@ -296,12 +355,9 @@ document.addEventListener("DOMContentLoaded", () => {
             select.appendChild(opt);
         });
 
-        // active scan additional justification
         const notesLabel = document.querySelector("label[for='scanNotes']");
         select.onchange = function() {
-            if (!notesLabel) {
-                return;
-            }
+            if (!notesLabel) { return; }
             if (this.value === "Active") {
                 notesLabel.innerHTML = 'Justification <span style="color:var(--danger)">* required for Active scans</span>';
             } else {
@@ -493,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // submit scan
+    // submit scan — single type, one or more scanners
     function submitScan() {
         const checked   = [...document.querySelectorAll("#nodeCheckboxList input:checked:not(#node-cb-all)")];
         const scan_type = document.getElementById("scanTypeSelect").value;
@@ -502,20 +558,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const scanHour  = document.getElementById("scanHour").value;
         const scanMin   = document.getElementById("scanMinute").value;
 
-        // no scanner picked, or scan type not selected
         if (checked.length === 0 || !scan_type) {
             alert("Please select at least one scanner and a scan type.");
             return;
         }
 
-        // active scan justification missing
         if (scan_type === "Active" && !notes) {
             alert("Active scans require a justification in the Notes field.");
             document.getElementById("scanNotes").focus();
             return;
         }
 
-        // date time partially complete
         let scheduled_at = null;
         if (scanDate && scanHour && scanMin) {
             scheduled_at = `${scanDate}T${scanHour}:${scanMin}:00`;
@@ -524,7 +577,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // submit
         const doSubmit = (password) => {
             const node_uids   = checked.map(cb => cb.dataset.nodeUid);
             const node_labels = checked.map(cb => cb.dataset.nodeLabel);
@@ -534,23 +586,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: "POST",
                 body: JSON.stringify({ node_uids, node_labels, networks, scan_type, notes, scheduled_at, password })
             }).then(resp => {
-                // submitted
                 if (resp.status === 201) {
                     alert(`Scan request submitted - ID: #${resp.data.id}`);
                     clearScanForm();
-
-                // failed submit
                 } else {
-                    let errorMessage = resp.data.error;
-                    if (!errorMessage) {
-                        errorMessage = "Failed to submit scan request.";
-                    }
-                    alert(errorMessage);
+                    alert((resp.data && resp.data.error) || "Failed to submit scan request.");
                 }
             });
         };
 
-        // active scan confirmation
         if (scan_type === "Active") {
             showPasswordModal(
                 "Active Scan - Password Confirmation",
@@ -567,9 +611,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ["networkFilterSelect", "scanTypeSelect", "scanNotes", "scanDate", "scanHour", "scanMinute"]
             .forEach(id => {
                 const el2 = document.getElementById(id);
-                if (el2) {
-                    el2.value = "";
-                }
+                if (el2) { el2.value = ""; }
             });
         const nodeListGroup = document.getElementById("nodeListGroup");
         if (nodeListGroup) {
@@ -613,11 +655,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 (!r.result_ids || r.result_ids.length === 0)
             );
 
-            // in progress results
+            // in progress — any approved scan (status flips to completed only when all nodes submit)
             const inProgress = all.filter(r =>
                 r.status === "approved" &&
-                (!r.scheduled_at || new Date(r.scheduled_at) <= now) &&
-                (!r.result_ids || r.result_ids.length === 0)
+                (!r.scheduled_at || new Date(r.scheduled_at) <= now)
             );
 
             // awaiting approval
@@ -844,7 +885,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const statusCell = tr.insertCell();
             statusCell.textContent = r.status.charAt(0).toUpperCase() + r.status.slice(1);
 
-            if (r.status === "approved") {
+            if (r.status === "approved" || r.status === "completed") {
                 statusCell.classList.add("status-approved");
             } else {
                 statusCell.classList.add("status-declined");
@@ -1010,190 +1051,165 @@ document.addEventListener("DOMContentLoaded", () => {
     // display scan results
     function displayScanRequest(requestId) {
         apiFetch("/results").then(resp => {
-            if (resp.status !== 200) {
-                return;
-            }
+            if (resp.status !== 200) { return; }
             const scan = resp.data.find(s => s.id == requestId);
-            if (!scan) {
-                return;
-            }
-            if (scan.result_ids.length === 0) {
-                return;
-            }
+            if (!scan || scan.result_ids.length === 0) { return; }
 
             window._currentScanRequestId = requestId;
             window._currentScanResultIds = scan.result_ids;
             window._currentNodeLabels    = scan.node_labels;
 
-            renderNodeTabs(scan.result_ids, scan.node_labels);
+            const combinedSection = document.getElementById("combinedSummarySection");
+            if (combinedSection) { combinedSection.classList.add("hidden"); }
 
-            // load the first node and total across all nodes
-            displayScanResults(scan.result_ids[0]);
+            // fetch every result up front so we can build both combined and per-scanner views
+            Promise.all(scan.result_ids.map(id => apiFetch(`/results/${id}`))).then(responses => {
+                const valid = responses.filter(r => r.status === 200).map(r => r.data);
+                if (valid.length === 0) { return; }
 
-            if (scan.result_ids.length > 1) {
-                Promise.all(scan.result_ids.map(id => apiFetch(`/results/${id}`))).then(responses => {
-                    const all = responses.filter(r => r.status === 200).map(r => r.data.summary);
-                    if (all.length === 0) {
-                        return;
-                    }
+                // cache all result data keyed by result id for tab switching
+                window._allResultData = {};
+                valid.forEach(d => { window._allResultData[d.metadata.id] = d; });
 
-                    // totals
-                    const totals = {
-                        total_devices:        all.reduce((s, r) => s + (r.total_devices || 0), 0),
-                        suspicious:           all.reduce((s, r) => s + (r.suspicious || 0), 0),
-                        rogue_ap:             all.some(r => r.rogue_ap),
-                        bandwidth:            all.map(r => r.bandwidth).filter(Boolean).join(" / "),
-                        total_deauth_frames:  all.reduce((s, r) => s + (r.total_deauth_frames || 0), 0),
-                        unknown_associations: all.reduce((s, r) => s + (r.unknown_associations || 0), 0),
-                    };
+                renderNodeTabs(scan.result_ids, scan.node_labels, valid);
 
-                    // detect scan type from first result
-                    const scan_type = responses[0].data.metadata.scan_type;
-                    const isRich = scan_type === "Active" || scan_type === "Deep Passive";
-
-                    // write combined totals
-                    const combinedSection = document.getElementById("combinedSummarySection");
-                    const combinedTbody   = clearTable("#combinedSummaryTable tbody");
-                    const combinedThead   = document.querySelector("#combinedSummaryTable thead");
-
-                    if (combinedSection && combinedTbody && combinedThead) {
-                        combinedSection.classList.remove("hidden");
-                        const baseHeaders = ["Total Devices", "Suspicious", "Rogue AP", "Bandwidth"];
-                        const richHeaders  = ["Total Deauth Frames", "Unknown Associations"];
-
-                        let allHeaders;
-                        if (isRich) {
-                            allHeaders = [...baseHeaders, ...richHeaders];
-                        } else {
-                            allHeaders = baseHeaders;
-                        }
-
-                        combinedThead.innerHTML = "";
-                        const hRow = combinedThead.insertRow();
-                        allHeaders.forEach(h => {
-                            const th = document.createElement("th");
-                            th.textContent = h;
-                            hRow.appendChild(th);
-                        });
-
-                        // devices, suspicious, rogue and total bandwidth
-                        let rogueApText;
-                        if (totals.rogue_ap) {
-                            rogueApText = "Yes";
-                        } else {
-                            rogueApText = "No";
-                        }
-                        const baseCells = [
-                            totals.total_devices, totals.suspicious,
-                            rogueApText, totals.bandwidth
-                        ];
-
-                        // deauth frames and unknown associates
-                        let richCells;
-                        if (isRich) {
-                            richCells = [
-                                totals.total_deauth_frames,
-                                totals.unknown_associations
-                            ];
-                        } else {
-                            richCells = [];
-                        }
-                        addRow(combinedTbody, [...baseCells, ...richCells]);
-                    }
-                });
-            }
+                if (valid.length > 1) {
+                    // render combined view by default for multi-scanner scans
+                    displayCombinedResults(valid);
+                } else {
+                    displayScanResults(scan.result_ids[0]);
+                }
+            });
         });
     }
 
-    // node tabs load
-    function renderNodeTabs(resultIds, nodeLabels) {
-        const tabContainer = document.getElementById("nodeTabs");
-        if (!tabContainer) {
-            return;
+    // render merged view across all scanners
+    function displayCombinedResults(allData) {
+        const combinedSection = document.getElementById("combinedSummarySection");
+        const scan_type = allData[0].metadata.scan_type;
+        const isRich    = scan_type === "Active" || scan_type === "Deep Passive";
+
+        // build combined summary
+        const allSummaries = allData.map(d => d.summary);
+        const totals = {
+            total_devices:        allSummaries.reduce((s, r) => s + (r.total_devices || 0), 0),
+            suspicious:           allSummaries.reduce((s, r) => s + (r.suspicious || 0), 0),
+            rogue_ap:             allSummaries.some(r => r.rogue_ap),
+            bandwidth:            allSummaries.map(r => r.bandwidth).filter(Boolean).join(" / "),
+            total_deauth_frames:  allSummaries.reduce((s, r) => s + (r.total_deauth_frames || 0), 0),
+            unknown_associations: allSummaries.reduce((s, r) => s + (r.unknown_associations || 0), 0),
+        };
+
+        const combinedTbody = clearTable("#combinedSummaryTable tbody");
+        const combinedThead = document.querySelector("#combinedSummaryTable thead");
+        const nodeCountEl   = document.getElementById("combinedSummaryNodeCount");
+
+        if (combinedSection && combinedTbody && combinedThead) {
+            if (nodeCountEl) { nodeCountEl.textContent = `(${allData.length} scanners)`; }
+
+            const headers = ["Total Devices", "Suspicious", "Rogue AP", "Bandwidth",
+                ...(isRich ? ["Total Deauth Frames", "Unknown Associations"] : [])];
+            combinedThead.innerHTML = "";
+            const hRow = combinedThead.insertRow();
+            headers.forEach(h => { const th = document.createElement("th"); th.textContent = h; hRow.appendChild(th); });
+
+            const rogueCell = totals.rogue_ap ? "Yes" : "No";
+            const row = addRow(combinedTbody, [
+                totals.total_devices, totals.suspicious, rogueCell, totals.bandwidth,
+                ...(isRich ? [totals.total_deauth_frames, totals.unknown_associations] : [])
+            ]);
+            if (totals.rogue_ap)        { row.classList.add("row-danger"); }
+            else if (totals.suspicious) { row.classList.add("row-warning"); }
+            combinedSection.classList.remove("hidden");
         }
+
+        // merge all devices for the combined device tables, tagging each with its scanner label
+        const allDevices = allData.flatMap((d, i) => {
+            const label = (window._currentNodeLabels && window._currentNodeLabels[i]) || `Scanner ${i + 1}`;
+            return d.devices.map(dev => ({ ...dev, _scannerLabel: label }));
+        });
+
+        // render merged device tables — reuse displayScanResults rendering logic inline
+        _renderDeviceTables(allDevices, isRich, allData[0].metadata, totals, true);
+    }
+
+    // node tabs load
+    function renderNodeTabs(resultIds, nodeLabels, allData) {
+        const tabContainer = document.getElementById("nodeTabs");
+        if (!tabContainer) { return; }
         tabContainer.innerHTML = "";
+
+        const summaryLabel = document.getElementById("nodeSummaryLabel");
 
         if (resultIds.length <= 1) {
             tabContainer.classList.add("hidden");
             const combinedSection = document.getElementById("combinedSummarySection");
-            if (combinedSection) {
-                combinedSection.classList.add("hidden");
-            }
-            const summaryLabel = document.getElementById("nodeSummaryLabel");
-            if (summaryLabel) {
-                summaryLabel.textContent = "Summary Insights";
-            }
+            if (combinedSection) { combinedSection.classList.add("hidden"); }
+            if (summaryLabel) { summaryLabel.textContent = "Summary Insights"; }
             return;
         }
 
         tabContainer.classList.remove("hidden");
-        resultIds.forEach((id, i) => {
-            let label;
-            if (nodeLabels && nodeLabels[i]) {
-                label = nodeLabels[i];
-            } else {
-                label = `Node ${i + 1}`;
-            }
 
+        // "All Scanners" tab — always first for multi-scanner scans
+        const allTab = el("button", "node-tab-btn active", "All Scanners");
+        allTab.onclick = function() {
+            document.querySelectorAll(".node-tab-btn").forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+            if (summaryLabel) { summaryLabel.textContent = "Summary Insights"; }
+            displayCombinedResults(allData || Object.values(window._allResultData || {}));
+        };
+        tabContainer.appendChild(allTab);
+
+        // individual scanner tabs
+        resultIds.forEach((id, i) => {
+            const label = (nodeLabels && nodeLabels[i]) ? nodeLabels[i] : `Scanner ${i + 1}`;
             const tabBtn = el("button", "node-tab-btn", label);
             tabBtn.dataset.resultId = id;
             tabBtn.onclick = function() {
                 document.querySelectorAll(".node-tab-btn").forEach(b => b.classList.remove("active"));
                 this.classList.add("active");
-                const summaryLabel = document.getElementById("nodeSummaryLabel");
-                if (summaryLabel) {
-                    summaryLabel.textContent = `Scanner Summary - ${label}`;
-                }
+                if (summaryLabel) { summaryLabel.textContent = `Summary — ${label}`; }
+                // hide the combined summary section when on a per-scanner tab
+                const combinedSection = document.getElementById("combinedSummarySection");
+                if (combinedSection) { combinedSection.classList.add("hidden"); }
                 displayScanResults(id);
             };
-            if (i === 0) {
-                tabBtn.classList.add("active");
-                const summaryLabel = document.getElementById("nodeSummaryLabel");
-                if (summaryLabel) {
-                    summaryLabel.textContent = `Scanner Summary - ${label}`;
-                }
-            }
             tabContainer.appendChild(tabBtn);
         });
     }
 
-    function displayScanResults(resultId) {
-        apiFetch(`/results/${resultId}`).then(resp => {
-            if (resp.status !== 200) {
-                return;
+    // shared device table renderer used by both single-scanner and combined views
+    function _renderDeviceTables(devices, isRich, metadata, summary, isCombined) {
+
+        // metadata row
+        const metaTbody = clearTable("#scanMetadataTable tbody");
+        if (metaTbody && metadata) {
+            // always show the scan request ID, not the per-scanner result ID
+            const requestId = metadata.scan_request_id || metadata.id;
+
+            // combined view: join all node labels; per-scanner: just that scanner's label
+            let nodeDisplay;
+            if (isCombined) {
+                const labels = window._currentNodeLabels && window._currentNodeLabels.length > 0
+                    ? window._currentNodeLabels
+                    : (metadata.all_node_labels || []);
+                nodeDisplay = labels.length > 0 ? labels.join(", ") : "All Scanners";
+            } else {
+                nodeDisplay = metadata.node_label || metadata.node_uid || "N/A";
             }
-            const { metadata, devices, summary } = resp.data;
-            const isRich = metadata.scan_type === "Active" || metadata.scan_type === "Deep Passive";
 
-            // metadata row
-            const metaTbody = clearTable("#scanMetadataTable tbody");
-            if (metaTbody) {
-                let nodeDisplay;
-                if (metadata.node_label) {
-                    nodeDisplay = metadata.node_label;
-                } else if (metadata.node_uid) {
-                    nodeDisplay = metadata.node_uid;
-                } else {
-                    nodeDisplay = "N/A";
-                }
-
-                let approvedBy;
-                if (metadata.approved_by) {
-                    approvedBy = metadata.approved_by;
-                } else {
-                    approvedBy = "N/A";
-                }
-
-                addRow(metaTbody, [
-                    `#${metadata.id}`,
-                    nodeDisplay,
-                    metadata.requested_by,
-                    approvedBy,
-                    metadata.network,
-                    metadata.scan_type,
-                    fmtDate(metadata.created_at)
-                ]);
-            }
+            const approvedBy = metadata.approved_by || "N/A";
+            addRow(metaTbody, [
+                `#${requestId}`,
+                nodeDisplay,
+                metadata.requested_by || "—",
+                approvedBy,
+                metadata.network || "—",
+                metadata.scan_type || "—",
+                metadata.created_at ? fmtDate(metadata.created_at) : "—"
+            ]);
+        }
 
             // threat alet banner
             (function() {
@@ -1212,7 +1228,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (allClear) {
                     banner.innerHTML = `
                         <div class="threat-card threat-safe">
-                            <span class="threat-icon">✓</span>
+                            <span class="threat-label">Clear</span>
                             <div>
                                 <strong>No Threats Detected</strong>
                                 <p>All flagged devices are known and accounted for.</p>
@@ -1224,7 +1240,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const list = rogueDevices.map(d => `<li>${d.mac}${d.vendor ? " (" + d.vendor + ")" : ""}</li>`).join("");
                         cards += `
                         <div class="threat-card threat-danger">
-                            <span class="threat-icon">⚠</span>
+                            <span class="threat-label">Alert</span>
                             <div>
                                 <strong>${rogueDevices.length} Rogue Access Point${rogueDevices.length > 1 ? "s" : ""} Detected</strong>
                                 <p>A rogue access point is a fake Wi-Fi network designed to intercept traffic or impersonate a legitimate network. Immediate investigation is recommended.</p>
@@ -1263,7 +1279,10 @@ document.addEventListener("DOMContentLoaded", () => {
             addRow(overviewThead.insertRow ? overviewThead : overviewThead, []);
             (function() {
                 const hr = overviewThead.insertRow();
-                ["Risk", "MAC", "Vendor", "Flags", "Status"].forEach(h => {
+                const cols = isCombined
+                    ? ["Risk", "Scanner", "MAC", "Vendor", "Flags", "Status"]
+                    : ["Risk", "MAC", "Vendor", "Flags", "Status"];
+                cols.forEach(h => {
                     const th = document.createElement("th");
                     th.textContent = h;
                     hr.appendChild(th);
@@ -1299,6 +1318,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     pill.textContent = "Safe";
                 }
                 riskCell.appendChild(pill);
+
+                // scanner label (combined view only)
+                if (isCombined) {
+                    addCellText(tr, d._scannerLabel || "—");
+                }
 
                 // mac
                 addCellText(tr, d.mac);
@@ -1492,7 +1516,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 addRow(summaryTbody, [...baseCells, ...richCells]);
             }
 
-            window._currentScanData = { metadata, devices, summary };
+        window._currentScanData = { metadata, devices, summary };
+    }
+
+    function displayScanResults(resultId) {
+        // use cached data if available to avoid redundant fetches
+        const cached = window._allResultData && window._allResultData[resultId];
+        if (cached) {
+            const { metadata, devices, summary } = cached;
+            const isRich = metadata.scan_type === "Active" || metadata.scan_type === "Deep Passive";
+            _renderDeviceTables(devices, isRich, metadata, summary, false);
+            return;
+        }
+        apiFetch(`/results/${resultId}`).then(resp => {
+            if (resp.status !== 200) { return; }
+            const { metadata, devices, summary } = resp.data;
+            const isRich = metadata.scan_type === "Active" || metadata.scan_type === "Deep Passive";
+            _renderDeviceTables(devices, isRich, metadata, summary, false);
         });
     }
 
@@ -1583,11 +1623,150 @@ document.addEventListener("DOMContentLoaded", () => {
     // admin page
     function loadAdminPage() {
         apiFetch("/known-devices").then(resp => {
-            if (resp.status !== 200) {
-                return;
-            }
+            if (resp.status !== 200) { return; }
             renderKnownDevices(resp.data);
         });
+        apiFetch("/users").then(resp => {
+            if (resp.status !== 200) { return; }
+            renderUsersTable(resp.data);
+        });
+    }
+
+    const ROLES = ["admin", "safeguard", "technician", "auditor"];
+
+    function renderUsersTable(users) {
+        const container = document.getElementById("usersSection");
+        if (!container) { return; }
+
+        const tbody = clearTable("#usersTable tbody");
+        if (!tbody) { return; }
+
+        if (users.length === 0) {
+            emptyRow(tbody, 5, "No users found");
+            return;
+        }
+
+        users.forEach(u => {
+            const tr = tbody.insertRow();
+
+            addCellText(tr, u.username);
+
+            // role cell — inline dropdown
+            const roleCell = tr.insertCell();
+            if (u.id === currentUser.id) {
+                // cannot change own role
+                roleCell.textContent = u.role;
+            } else {
+                const sel = document.createElement("select");
+                sel.className = "inline-select";
+                ROLES.forEach(r => {
+                    const opt = document.createElement("option");
+                    opt.value = r;
+                    opt.textContent = r;
+                    if (r === u.role) { opt.selected = true; }
+                    sel.appendChild(opt);
+                });
+                sel.onchange = function() {
+                    if (!confirm(`Change ${u.username}'s role to "${this.value}"?`)) {
+                        this.value = u.role;
+                        return;
+                    }
+                    apiFetch(`/users/${u.id}/role`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ role: this.value })
+                    }).then(resp => {
+                        if (resp.status === 200) {
+                            loadAdminPage();
+                        } else {
+                            alert((resp.data && resp.data.error) || "Failed to update role.");
+                            this.value = u.role;
+                        }
+                    });
+                };
+                roleCell.appendChild(sel);
+            }
+
+            // last login
+            addCellText(tr, u.last_login ? fmtDate(u.last_login) : "Never");
+
+            // failed attempts
+            addCellText(tr, u.failed_logins);
+
+            // lock status
+            const lockCell = tr.insertCell();
+            if (u.locked) {
+                const badge = el("span", "status-badge status-warning", "Locked");
+                lockCell.appendChild(badge);
+            } else {
+                const badge = el("span", "status-badge status-online", "Active");
+                lockCell.appendChild(badge);
+            }
+
+            // actions
+            const actCell = tr.insertCell();
+            actCell.className = "action-cell";
+
+            if (u.id !== currentUser.id) {
+                actCell.appendChild(btn("Reset Password", "secondary-btn", () => {
+                    showResetPasswordModal(u.id, u.username);
+                }));
+
+                if (u.locked) {
+                    actCell.appendChild(btn("Unlock", "primary-btn", () => {
+                        if (!confirm(`Unlock account for ${u.username}?`)) { return; }
+                        apiFetch(`/users/${u.id}/unlock`, { method: "POST" }).then(resp => {
+                            if (resp.status === 200) { loadAdminPage(); }
+                            else { alert((resp.data && resp.data.error) || "Failed to unlock."); }
+                        });
+                    }));
+                }
+            } else {
+                addCellText(tr, "(you)");
+            }
+        });
+    }
+
+    function showResetPasswordModal(userId, username) {
+        // reuse the password modal pattern already in the app
+        const overlay = document.createElement("div");
+        overlay.id = "pwdModalOverlay";
+        overlay.innerHTML = `
+            <div id="pwdModalBox">
+                <h3>Reset Password</h3>
+                <p>Set a new password for <strong>${username}</strong>. Must be at least 10 characters.</p>
+                <input id="pwdModalInput" type="password" placeholder="New password" autocomplete="new-password">
+                <div id="pwdModalError"></div>
+                <div id="pwdModalBtns">
+                    <button id="pwdModalCancel">Cancel</button>
+                    <button id="pwdModalConfirm">Reset Password</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const input   = overlay.querySelector("#pwdModalInput");
+        const errEl   = overlay.querySelector("#pwdModalError");
+        const confirm = overlay.querySelector("#pwdModalConfirm");
+        const cancel  = overlay.querySelector("#pwdModalCancel");
+
+        input.focus();
+
+        cancel.onclick  = () => overlay.remove();
+        confirm.onclick = () => {
+            const password = input.value;
+            if (!password) { errEl.textContent = "Please enter a password."; return; }
+            apiFetch(`/users/${userId}/password`, {
+                method: "PATCH",
+                body: JSON.stringify({ password })
+            }).then(resp => {
+                if (resp.status === 200) {
+                    overlay.remove();
+                    alert(`Password reset for ${username}.`);
+                } else {
+                    errEl.textContent = (resp.data && resp.data.error) || "Failed to reset password.";
+                }
+            });
+        };
+        input.onkeydown = e => { if (e.key === "Enter") { confirm.onclick(); } };
     }
 
     function renderKnownDevices(devices) {
@@ -1740,26 +1919,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 tr.insertCell().textContent = lastCheckinText;
 
-                let alertBadgeClass;
-                if (n.alert_count > 0) {
-                    alertBadgeClass = "badge unknown";
-                } else {
-                    alertBadgeClass = "badge known";
-                }
-                const alertBadge = el("span", alertBadgeClass);
-
-                if (n.alert_count > 0) {
-                    let alertWord;
-                    if (n.alert_count > 1) {
-                        alertWord = "s";
-                    } else {
-                        alertWord = "";
-                    }
-                    alertBadge.textContent = `${n.alert_count} alert${alertWord}`;
-                } else {
-                    alertBadge.textContent = "None";
-                }
-                tr.insertCell().appendChild(alertBadge);
 
                 tr.onclick = () => loadNodeDetail(n.id, n.node_uid, n.site, n.area);
             });
@@ -1774,15 +1933,32 @@ document.addEventListener("DOMContentLoaded", () => {
         panel.classList.remove("hidden");
         panel.scrollIntoView({ behavior: "smooth" });
 
+        // store current node id so the edit/save functions can reference it
+        panel.dataset.nodeId      = nodeId;
+        panel.dataset.nodeUid     = uid;
+
+        // show Edit button for admins
+        const btnEdit = document.getElementById("btnEditNode");
+        if (btnEdit) {
+            if (currentUser.role === "admin") {
+                btnEdit.classList.remove("hidden");
+            } else {
+                btnEdit.classList.add("hidden");
+            }
+        }
+
+        // close any open edit form when switching nodes
+        cancelNodeEdit();
+
         ["#nodeScansTable tbody", "#nodeScheduledTable tbody",
-         "#nodeErrorsTable tbody", "#nodeAlertsTable tbody"].forEach(sel => {
+         "#nodeErrorsTable tbody"].forEach(sel => {
             clearTable(sel, "Loading...", 3);
         });
 
         apiFetch(`/nodes/${nodeId}/detail`).then(resp => {
             if (resp.status !== 200) {
                 ["#nodeScansTable tbody", "#nodeScheduledTable tbody",
-                 "#nodeErrorsTable tbody", "#nodeAlertsTable tbody"].forEach(sel => {
+                 "#nodeErrorsTable tbody"].forEach(sel => {
                     clearTable(sel, "Failed to load", 3);
                 });
                 return;
@@ -1855,41 +2031,64 @@ document.addEventListener("DOMContentLoaded", () => {
                 d.recent_errors.forEach(e => addRow(errorsTbody, [e.message, fmtDate(e.created_at)]));
             }
 
-            const alertsTbody = clearTable("#nodeAlertsTable tbody");
-            const canResolve = ["admin", "safeguard"].includes(currentUser.role);
-            if (d.alerts.length === 0) {
-                emptyRow(alertsTbody, 3, "No active alerts");
-            } else {
-                d.alerts.forEach(a => {
-                    const tr = addRow(alertsTbody, [a.message, fmtDate(a.created_at)]);
-                    const actionCell = tr.insertCell();
-                    if (canResolve) {
-                        actionCell.appendChild(btn("Resolve", "", () => resolveAlert(a.id, nodeId)));
-                    } else {
-                        actionCell.textContent = "N/A";
-                    }
-                });
-            }
+
         });
     }
 
-    function resolveAlert(alertId, nodeId) {
-        apiFetch(`/nodes/alerts/${alertId}/resolve`, { method: "POST" }).then(resp => {
-            if (resp.status !== 200) {
-                let errorMessage = resp.data.error;
-                if (!errorMessage) {
-                    errorMessage = "Failed to resolve alert.";
-                }
-                alert(errorMessage);
-                return;
+
+
+    function openNodeEdit() {
+        const panel   = document.getElementById("nodeDetailPanel");
+        const form    = document.getElementById("editNodeForm");
+        const errEl   = document.getElementById("editNodeError");
+        if (!form) { return; }
+
+        // pre-fill with current values from the detail endpoint
+        const nodeId = panel.dataset.nodeId;
+        apiFetch(`/nodes/${nodeId}/detail`).then(resp => {
+            if (resp.status !== 200) { return; }
+            document.getElementById("editNodeSite").value    = resp.data.site    || "";
+            document.getElementById("editNodeArea").value    = resp.data.area    || "";
+            document.getElementById("editNodeNetwork").value = resp.data.network || "";
+        });
+
+        if (errEl) { errEl.classList.add("hidden"); errEl.textContent = ""; }
+        form.classList.remove("hidden");
+        document.getElementById("editNodeSite").focus();
+    }
+
+    function cancelNodeEdit() {
+        const form = document.getElementById("editNodeForm");
+        if (form) { form.classList.add("hidden"); }
+    }
+
+    function saveNodeEdit() {
+        const panel   = document.getElementById("nodeDetailPanel");
+        const nodeId  = panel.dataset.nodeId;
+        const uid     = panel.dataset.nodeUid;
+        const errEl   = document.getElementById("editNodeError");
+
+        const site    = document.getElementById("editNodeSite").value.trim();
+        const area    = document.getElementById("editNodeArea").value.trim();
+        const network = document.getElementById("editNodeNetwork").value.trim();
+
+        if (!site || !area || !network) {
+            if (errEl) { errEl.textContent = "All fields are required."; errEl.classList.remove("hidden"); }
+            return;
+        }
+
+        apiFetch(`/nodes/${nodeId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ site, area, network })
+        }).then(resp => {
+            if (resp.status === 200) {
+                cancelNodeEdit();
+                loadNodesPage();
+                loadNodeDetail(nodeId, uid, site, area);
+            } else {
+                const msg = (resp.data && resp.data.error) || "Failed to update scanner.";
+                if (errEl) { errEl.textContent = msg; errEl.classList.remove("hidden"); }
             }
-            const uid = document.getElementById("nodeDetailTitle").textContent.split(" - ")[0];
-            loadNodesPage();
-            apiFetch(`/nodes/${nodeId}/detail`).then(r => {
-                if (r.status === 200) {
-                    loadNodeDetail(nodeId, uid, r.data.site, r.data.area);
-                }
-            });
         });
     }
 
@@ -1939,6 +2138,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     window.registerNode    = registerNode;
+    window.saveNodeEdit    = saveNodeEdit;
+    window.cancelNodeEdit  = cancelNodeEdit;
+
+    const btnEditNode = document.getElementById("btnEditNode");
+    if (btnEditNode) { btnEditNode.addEventListener("click", openNodeEdit); }
     window.closeNodeDetail = () => {
         document.getElementById("nodeDetailPanel").classList.add("hidden");
     };
