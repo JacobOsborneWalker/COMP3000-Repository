@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 auth_bp = Blueprint("auth", __name__)
 
-
+# write audit log
 def _write_audit(action: str, user_id=None, detail: str = None):
     entry = AuditLog(
         user_id    = user_id,
@@ -23,10 +23,12 @@ def _write_audit(action: str, user_id=None, detail: str = None):
     db.session.add(entry)
     db.session.commit()
 
-
+## login authentication 
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True)
+
+    # missing credentials
     if not data or "username" not in data or "password" not in data:
         return jsonify({"error": "missing credentials"}), 400
 
@@ -69,6 +71,7 @@ def login():
     return jsonify({"error": "invalid username or password"}), 401
 
 
+# logout
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():

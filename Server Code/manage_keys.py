@@ -6,6 +6,7 @@ from app import app
 from models import db, Node
 
 
+# key list
 def cmd_list():
     nodes = Node.query.order_by(Node.node_uid).all()
     if not nodes:
@@ -17,7 +18,7 @@ def cmd_list():
         key_set = "yes" if n._api_key else "no"
         print(f"  {n.node_uid:<18} {(n.site or ''):<20} {(n.area or ''):<20} {n.status:<10} {key_set}")
 
-
+# generate keys
 def cmd_generate(node_uid: str):
     node = Node.query.filter_by(node_uid=node_uid).first()
     if not node:
@@ -36,6 +37,7 @@ def cmd_generate(node_uid: str):
     print("Update the scanner's API_KEY environment variable with this value.")
 
 
+# revoke keys 
 def cmd_revoke(node_uid: str):
     node = Node.query.filter_by(node_uid=node_uid).first()
     if not node:

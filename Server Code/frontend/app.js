@@ -116,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // api
-
     function getToken() {
         return localStorage.getItem("authToken");
     }
@@ -142,16 +141,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const username = loginUser.value.trim();
         const password = loginPass.value;
 
+
+        // needs to enter username and password
         if (!username || !password) {
             showLoginError("Please enter a username and password.");
             return;
         }
 
+        // fetch usernames and passwords
         fetch(`${API_URL}/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
             body: JSON.stringify({ username, password })
         })
+
         .then(r => r.json().then(data => ({ status: r.status, data })))
         .then(resp => {
             if (resp.status === 200) {
@@ -187,18 +190,24 @@ document.addEventListener("DOMContentLoaded", () => {
         startKeepalive();
     }
 
-    // change password modal (for logged-in user changing their own password)
+    // change password modal
     function showChangePasswordModal() {
         const overlay = document.createElement("div");
         overlay.id = "pwdModalOverlay";
         overlay.innerHTML = `
+        // html for changing passwords
             <div id="pwdModalBox">
                 <h3>Change Password</h3>
                 <p>Enter your current password, then choose a new one (min. 10 characters).</p>
+
                 <input id="pwdCurrentInput" type="password" placeholder="Current password" autocomplete="current-password" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:8px;box-sizing:border-box;">
+
                 <input id="pwdModalInput" type="password" placeholder="New password" autocomplete="new-password">
+
                 <input id="pwdNewConfirm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-top:6px;box-sizing:border-box;">
+                
                 <div id="pwdModalError"></div>
+
                 <div id="pwdModalBtns">
                     <button id="pwdModalCancel">Cancel</button>
                     <button id="pwdModalConfirm">Change Password</button>
@@ -216,32 +225,41 @@ document.addEventListener("DOMContentLoaded", () => {
         currentInput.focus();
         cancelBtn.onclick = () => overlay.remove();
 
+        // button click
         confirmBtn.onclick = () => {
             const current  = currentInput.value;
             const newPwd   = newInput.value;
             const confPwd  = confirmInput.value;
             errEl.textContent = "";
 
+            /// not entering detail
             if (!current || !newPwd || !confPwd) {
                 errEl.textContent = "All fields are required.";
                 return;
             }
+
+            // passwords dont match
             if (newPwd !== confPwd) {
                 errEl.textContent = "New passwords do not match.";
                 return;
             }
+
+            // password not long enough
             if (newPwd.length < 10) {
                 errEl.textContent = "New password must be at least 10 characters.";
                 return;
             }
 
+            // updating the password
             apiFetch("/change-password", {
                 method: "POST",
                 body: JSON.stringify({ current_password: current, new_password: newPwd })
             }).then(resp => {
+                // updated password
                 if (resp.status === 200) {
                     overlay.remove();
                     alert("Password changed successfully.");
+                // failed to cange password
                 } else {
                     errEl.textContent = (resp.data && resp.data.error) || "Failed to change password.";
                 }
@@ -275,6 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 240000);
     }
 
+    // stopping keep alive
     function stopKeepalive() {
         clearInterval(keepaliveInterval);
         keepaliveInterval = null;
@@ -330,34 +349,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // create scan
-
     function setupCreateScanPage() {
         const select = document.getElementById("scanTypeSelect");
         if (!select) { return; }
 
         select.innerHTML = '<option value="">Select Type</option>';
 
+        // values and labels
         const allTypes = [
             { value: "Passive",      label: "Passive Scan" },
             { value: "Active",       label: "Active Scan" },
             { value: "Deep Passive", label: "Deep Passive Scan" }
         ];
 
+        // technicians only type
         const techTypes = [
             { value: "Passive", label: "Passive Scan (Routine)" }
         ];
 
         const types = currentUser.role === "technician" ? techTypes : allTypes;
 
+
         types.forEach(t => {
             const opt = el("option", null, t.label);
             opt.value = t.value;
             select.appendChild(opt);
-        });
-
+        }); 
+        
         const notesLabel = document.querySelector("label[for='scanNotes']");
         select.onchange = function() {
             if (!notesLabel) { return; }
+
+            // needs justicaiton for acive scan
             if (this.value === "Active") {
                 notesLabel.innerHTML = 'Justification <span style="color:var(--danger)">* required for Active scans</span>';
             } else {
@@ -372,6 +395,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let _allNodes    = null;
     let _allRequests = null;
 
+
+    // load node checkbox
     function loadNodeCheckboxes() {
         const networkSelect = document.getElementById("networkFilterSelect");
         const nodeListGroup = document.getElementById("nodeListGroup");
@@ -417,13 +442,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const placeholder = document.createElement("option");
             placeholder.value = "";
 
+            // one site
             if (sites.length === 1) {
                 placeholder.textContent = "1 site available - select to choose scanners";
-            } else {
+            } 
+            // more than one site
+            else {
                 placeholder.textContent = `${sites.length} sites available - select one`;
             }
             networkSelect.appendChild(placeholder);
 
+            // node count
             sites.forEach(site => {
                 const nodeCount = _allNodes.filter(n => n.site === site).length;
                 const opt = document.createElement("option");
@@ -452,6 +481,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const container     = document.getElementById("nodeCheckboxList");
         container.innerHTML = "";
 
+
+        // not selected
         if (!selectedNetwork) {
             nodeListGroup.style.display = "none";
             return;
@@ -504,10 +535,14 @@ document.addEventListener("DOMContentLoaded", () => {
             // offline
             const isOffline = n.status === "offline";
 
+
+            // node is ofline
             let wrapperClass;
             if (isOffline) {
                 wrapperClass = "node-checkbox-item node-offline";
-            } else {
+            } 
+            // node online
+            else {
                 wrapperClass = "node-checkbox-item";
             }
             const wrapper  = el("div", wrapperClass);
@@ -518,7 +553,9 @@ document.addEventListener("DOMContentLoaded", () => {
             checkbox.value = n.network;
             checkbox.dataset.nodeUid   = n.node_uid;
             checkbox.dataset.nodeLabel = `${n.site} / ${n.area}`;
+            
 
+            // if ofline disable click
             if (isOffline) {
                 checkbox.disabled = true;
             }
@@ -526,6 +563,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const labelEl  = el("label");
             labelEl.htmlFor = `node-cb-${n.id}`;
 
+
+            // status information
             let statusClass;
             if (statusClasses[n.status]) {
                 statusClass = statusClasses[n.status];
@@ -549,7 +588,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // submit scan — single type, one or more scanners
+    // submit scan  single type, one or more scanners
     function submitScan() {
         const checked   = [...document.querySelectorAll("#nodeCheckboxList input:checked:not(#node-cb-all)")];
         const scan_type = document.getElementById("scanTypeSelect").value;
@@ -558,11 +597,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const scanHour  = document.getElementById("scanHour").value;
         const scanMin   = document.getElementById("scanMinute").value;
 
+
+        // check if at least one selected
         if (checked.length === 0 || !scan_type) {
             alert("Please select at least one scanner and a scan type.");
             return;
         }
 
+        // check justification needed for active scan
         if (scan_type === "Active" && !notes) {
             alert("Active scans require a justification in the Notes field.");
             document.getElementById("scanNotes").focus();
@@ -572,7 +614,9 @@ document.addEventListener("DOMContentLoaded", () => {
         let scheduled_at = null;
         if (scanDate && scanHour && scanMin) {
             scheduled_at = `${scanDate}T${scanHour}:${scanMin}:00`;
-        } else if (scanDate || scanHour || scanMin) {
+        } 
+        // missing part of scan time
+        else if (scanDate || scanHour || scanMin) {
             alert("Please fill in the full schedule (date, hour and minute) or leave all blank.");
             return;
         }
@@ -582,6 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const node_labels = checked.map(cb => cb.dataset.nodeLabel);
             const networks    = checked.map(cb => cb.value);
 
+            // submit scan request
             apiFetch("/requests", {
                 method: "POST",
                 body: JSON.stringify({ node_uids, node_labels, networks, scan_type, notes, scheduled_at, password })
@@ -589,12 +634,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (resp.status === 201) {
                     alert(`Scan request submitted - ID: #${resp.data.id}`);
                     clearScanForm();
-                } else {
+                } 
+                // failed to submit scan
+                else {
                     alert((resp.data && resp.data.error) || "Failed to submit scan request.");
                 }
             });
         };
 
+        // requires password for active scan
         if (scan_type === "Active") {
             showPasswordModal(
                 "Active Scan - Password Confirmation",
@@ -678,15 +726,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!tbody) {
             return;
         }
+
+        // no scheduled scan
         if (requests.length === 0) {
             emptyRow(tbody, 6, "No scheduled scans");
             return;
         }
+        
         requests.forEach(r => {
             let nodeText;
+
             if (r.node_labels && r.node_labels.length > 0) {
                 nodeText = r.node_labels.join(", ");
-            } else {
+            } 
+            else {
                 nodeText = r.network;
             }
             const tr = addRow(tbody, [
@@ -1019,8 +1072,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const fresh = old.cloneNode(false);
         fresh.innerHTML = '<option value="">-- Choose Scan --</option>';
 
+
         scans.forEach(s => {
             let nodeText;
+            // join node lables
             if (s.node_labels && s.node_labels.length > 0) {
                 nodeText = s.node_labels.join(", ");
             } else {
@@ -1028,6 +1083,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             let label;
+            // node label
             if (s.node_count > 1) {
                 label = `#${s.id} | ${fmtDate(s.created_at)} | ${s.scan_type} | ${nodeText} (${s.node_count} scanners)`;
             } else {
@@ -1129,7 +1185,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return d.devices.map(dev => ({ ...dev, _scannerLabel: label }));
         });
 
-        // render merged device tables — reuse displayScanResults rendering logic inline
+        // render merged device tables
         _renderDeviceTables(allDevices, isRich, allData[0].metadata, totals, true);
     }
 
@@ -1151,7 +1207,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tabContainer.classList.remove("hidden");
 
-        // "All Scanners" tab — always first for multi-scanner scans
+        // "All Scanners" tab.  always first for multi-scanner scans
         const allTab = el("button", "node-tab-btn active", "All Scanners");
         allTab.onclick = function() {
             document.querySelectorAll(".node-tab-btn").forEach(b => b.classList.remove("active"));
@@ -1170,7 +1226,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll(".node-tab-btn").forEach(b => b.classList.remove("active"));
                 this.classList.add("active");
                 if (summaryLabel) { summaryLabel.textContent = `Summary — ${label}`; }
-                // hide the combined summary section when on a per-scanner tab
+
+                // hide the combined summary section when on a per scanner tab
                 const combinedSection = document.getElementById("combinedSummarySection");
                 if (combinedSection) { combinedSection.classList.add("hidden"); }
                 displayScanResults(id);
@@ -1185,10 +1242,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // metadata row
         const metaTbody = clearTable("#scanMetadataTable tbody");
         if (metaTbody && metadata) {
-            // always show the scan request ID, not the per-scanner result ID
+
+            // always show the scan request ID
             const requestId = metadata.scan_request_id || metadata.id;
 
-            // combined view: join all node labels; per-scanner: just that scanner's label
+            // combined view: join all node labels per-scanner just that scanners label
             let nodeDisplay;
             if (isCombined) {
                 const labels = window._currentNodeLabels && window._currentNodeLabels.length > 0
@@ -1225,6 +1283,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 banner.id = "threatBanner";
                 banner.className = "threat-banner";
 
+                // no threats 
                 if (allClear) {
                     banner.innerHTML = `
                         <div class="threat-card threat-safe">
@@ -1236,6 +1295,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>`;
                 } else {
                     let cards = "";
+                    
+                    // rogue devices 
                     if (rogueDevices.length > 0) {
                         const list = rogueDevices.map(d => `<li>${d.mac}${d.vendor ? " (" + d.vendor + ")" : ""}</li>`).join("");
                         cards += `
@@ -1248,6 +1309,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>`;
                     }
+
+                    // suspcisious devices
                     if (suspDevices.length > 0) {
                         const list = suspDevices.map(d => `<li>${d.mac}${d.vendor ? " (" + d.vendor + ")" : ""}</li>`).join("");
                         cards += `
